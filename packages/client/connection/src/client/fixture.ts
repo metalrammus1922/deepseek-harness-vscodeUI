@@ -2563,6 +2563,32 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       },
       openPath: request => ok(request, { opened: true as const }),
     },
+    git: {
+      // Deterministic repo: FIXTURE_HOME is a work tree on main, clean.
+      status: request => ok(request, {
+        isRepo: true,
+        root: FIXTURE_HOME,
+        branch: 'main',
+        entries: [],
+        ahead: 0,
+        behind: 0,
+      }),
+    },
+    fs: {
+      list: (request) => {
+        const target = request.payload.path ?? FIXTURE_HOME
+        const children = childrenOf(target)
+        if (children === undefined) {
+          return err(request, { code: 'fs-list-unreadable', message: 'cannot list ' + target, details: { path: target } })
+        }
+        return ok(request, {
+          path: target,
+          entries: [...children].sort((a, b) => a.localeCompare(b))
+            .map(name => ({ name, path: target === '/' ? '/' + name : target + '/' + name, isDirectory: true, hidden: name.startsWith('.') })),
+          truncated: false,
+        })
+      },
+    },
     workspace: {
       list: request => ok(request, {
         items: workspaces.map(w => ({ ...w })),

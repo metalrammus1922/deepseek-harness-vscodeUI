@@ -11,6 +11,8 @@ import { SlotRegistry } from './slots.ts'
 import { SessionRuntime } from './sessions/service.ts'
 import type { SessionListState } from './sessions/service.ts'
 import { WorkspaceRuntime } from './workspaces/service.ts'
+import { GitRuntime } from './git/service.ts'
+import { FsRuntime } from './fs/service.ts'
 import type { ConversationSnapshot } from './sessions/conversation.ts'
 import type { UseProjection } from './sessions/projection-store.ts'
 import { ConversationEventRegistry } from './conversation/event-registry.ts'
@@ -64,8 +66,12 @@ export type { SubagentAddress, JobView } from '@deepseek-ai/dsh-client-connectio
 export type { WorkspaceListPhase } from './workspaces/manager.ts'
 export type { WorkspaceListState } from './workspaces/service.ts'
 export type {
-  DirectoryEntry, DirectoryListing, WorkspaceId, WorkspaceView,
+  DirectoryEntry, DirectoryListing, GitStatus, GitStatusEntry, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-connection/client'
+export { GitError, GitRuntime } from './git/service.ts'
+export type { IGit } from './contract/git.ts'
+export { FsError, FsRuntime } from './fs/service.ts'
+export type { IFs } from './contract/fs.ts'
 // Runtime owns the snapshot store; web-react only binds it to React.
 export { createSnapshotStore, defineStore, shallowEqual } from './contract/store.ts'
 export type {
@@ -176,6 +182,10 @@ declare module '@deepseek-ai/cordis' {
     sessions: import('./contract/sessions.ts').ISessions
     /** The outward face only; the concrete service stays inside the runtime. */
     workspaces: import('./contract/workspaces.ts').IWorkspaces
+    /** The outward face only; the concrete service stays inside the runtime. */
+    git: import('./contract/git.ts').IGit
+    /** The outward face only; the concrete service stays inside the runtime. */
+    fs: import('./contract/fs.ts').IFs
   }
 }
 
@@ -197,6 +207,8 @@ export function apply(ctx: Context): void {
     identity: candidate => sessions.scopeOf(candidate),
   })
   const workspaces = new WorkspaceRuntime(ctx, connection.api, sessions)
+  new GitRuntime(ctx, connection.api)
+  new FsRuntime(ctx, connection.api)
   ctx.effect(
     () => workspaces.startInitialSelection(),
     'runtime: initial Workspace selection',

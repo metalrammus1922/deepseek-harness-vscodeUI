@@ -19,6 +19,8 @@ import {
  * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
  * `narrowExpanded` is the manual override that re-expands the auto-collapsed
  * sidebar over the squeezed center without rewriting the width preference.
+ * `details` is the RIGHT (chat) panel track in the Trae-style arrangement;
+ * it starts open (DETAILS_DEFAULT) and drag clamps into its contract range.
  */
 type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean }
 
@@ -47,7 +49,9 @@ type LayoutActions = {
  */
 export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
-    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
+    // The right (chat) panel starts open: it is the primary conversation
+    // surface (the details preference now owns the chat track).
+    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: DETAILS_DEFAULT, narrow: false, narrowExpanded: false }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },

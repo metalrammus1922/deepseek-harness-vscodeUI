@@ -23,6 +23,17 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.workspaces': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
     /**
+     * The file-tree panel of the explorer activity (VSCode-style tabs).
+     * Declared by this package's 'sidebar' entry; ui-explorer registers the
+     * tree. Same owner share as the session browser.
+     */
+    'sidebar.explorer.files': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
+    /**
+     * The Git source-control panel of the explorer activity. Declared by this
+     * package's 'sidebar' entry; ui-explorer registers the panel.
+     */
+    'sidebar.explorer.git': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
+    /**
      * The settings seat at the sidebar foot. Declared by this package's
      * 'sidebar' entry; ui-settings registers its trigger row + modal panel.
      * The sidebar passes only its column state — it holds no settings state.
@@ -85,5 +96,5 @@ export type SidebarRootInjected = {
  */
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
-  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
+  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.explorer.files' | 'sidebar.explorer.git' | 'sidebar.settings' | 'sidebar.footer.action'>
   & SidebarRootInjected & PropsLocale<'sidebar'>

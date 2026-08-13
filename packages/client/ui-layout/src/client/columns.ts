@@ -31,12 +31,12 @@ export const SIDEBAR_COLLAPSED = 56
  * LG breakpoint); a manual toggle below it re-expands over the squeezed center
  * (stores.ts narrowExpanded). */
 export const SIDEBAR_AUTO_COLLAPSE = 1024
-/** Details drag clamp floor. */
-export const DETAILS_MIN = 300
-/** Details drag clamp ceiling. */
-export const DETAILS_MAX = 520
-/** Details width before any user drag. */
-export const DETAILS_DEFAULT = 360
+/** Right (chat) panel drag clamp floor. */
+export const DETAILS_MIN = 340
+/** Right (chat) panel drag clamp ceiling. */
+export const DETAILS_MAX = 640
+/** Right (chat) panel width before any user drag. */
+export const DETAILS_DEFAULT = 460
 
 /**
  * Clamp a panel width into its contract range.
@@ -56,7 +56,7 @@ export function clampWidth(px: number, min: number, max: number): number {
  * store boundary and callers may still supply stale ranges.
  * @param viewport - available frame width in px.
  * @param sidebar - sidebar width preference in px (0 = closed).
- * @param details - details width preference in px (0 = closed).
+ * @param details - right (chat) panel width preference in px (0 = closed).
  * @returns resolved widths; details 0 means visually closed (never unmounted), while a closed sidebar keeps its compact rail.
  */
 export function computeColumns(viewport: number, sidebar: number, details: number): Columns {

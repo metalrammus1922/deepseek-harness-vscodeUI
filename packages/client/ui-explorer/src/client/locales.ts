@@ -1,0 +1,52 @@
+/** `explorer` namespace dictionaries. */
+
+/** Simplified Chinese dictionary (the key-set source of truth). */
+export const zh = {
+  'panel.files': '文件',
+  'panel.git': 'Git',
+  'panel.sessions': '会话',
+  'files.title': '项目文件',
+  'files.refresh': '刷新',
+  'files.empty': '（空）',
+  'files.loading': '加载中…',
+  'files.noWorkspace': '打开或新建一个工作区后显示项目文件',
+  'git.title': '源代码管理',
+  'git.refresh': '刷新',
+  'git.branch.aria': '当前分支',
+  'git.ahead': '领先 {n}',
+  'git.behind': '落后 {n}',
+  'git.staged': '暂存区',
+  'git.changes': '更改',
+  'git.untracked': '未跟踪',
+  'git.clean': '没有更改',
+  'git.notRepo': '当前目录不是 Git 仓库',
+  'git.loading': '读取中…',
+  'git.error': '读取 Git 状态失败',
+} satisfies Record<string, string>
+
+/** The explorer namespace key union. */
+export type ExplorerKey = keyof typeof zh
+
+/** English dictionary, checked complete against the zh key set. */
+export const en = {
+  'panel.files': 'Files',
+  'panel.git': 'Git',
+  'panel.sessions': 'Sessions',
+  'files.title': 'Project Files',
+  'files.refresh': 'Refresh',
+  'files.empty': '(empty)',
+  'files.loading': 'Loading…',
+  'files.noWorkspace': 'Open or create a workspace to see project files',
+  'git.title': 'Source Control',
+  'git.refresh': 'Refresh',
+  'git.branch.aria': 'Current branch',
+  'git.ahead': '{n} ahead',
+  'git.behind': '{n} behind',
+  'git.staged': 'Staged',
+  'git.changes': 'Changes',
+  'git.untracked': 'Untracked',
+  'git.clean': 'No changes',
+  'git.notRepo': 'Not a Git repository',
+  'git.loading': 'Loading…',
+  'git.error': 'Failed to read Git status',
+} satisfies Record<ExplorerKey, string>

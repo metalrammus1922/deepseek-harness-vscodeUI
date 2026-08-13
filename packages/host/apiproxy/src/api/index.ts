@@ -7,6 +7,7 @@
 import type { SessionsApi } from './sessions.ts'
 import type { HostApi } from './host.ts'
 import type { GitApi } from './git.ts'
+import type { FsApi } from './fs.ts'
 import type { WorkspaceApi } from './workspace.ts'
 import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
@@ -25,6 +26,7 @@ export interface ApiProxy {
   subagents: SubagentsApi
   host: HostApi
   git: GitApi
+  fs: FsApi
   workspace: WorkspaceApi
   skills: SkillsApi
   agentPresets: AgentPresetsApi
@@ -51,6 +53,7 @@ export type {
 } from './sessions.ts'
 export type { DirectoryEntry, DirectoryListing, HostApi } from './host.ts'
 export type { GitApi, GitStatus, GitStatusEntry } from './git.ts'
+export type { FsApi, FsEntry, FsListing } from './fs.ts'
 export type {
   SubagentAddress, SubagentCatalog, SubagentInterruptReceipt, SubagentListEntry,
   SubagentPromptReceipt, SubagentsApi,

@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   BrandWordmark, FishLogo,
+  IconBranchOutline16, IconCodeOutline16,
   IconNewChatOutline16, IconPanelLeftOutline16,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -58,6 +59,11 @@ export function SidebarRoot({
     return () => { window.clearTimeout(timer) }
   }, [collapsed])
   const wide = !collapsed || !settled
+
+  // Explorer activity: which panel fills the browsing region (VSCode-style
+  // activity tabs). Wide mode shows the tab strip; the collapsed rail always
+  // falls back to the session browser's own rail icons.
+  const [activity, setActivity] = useState<'files' | 'git' | 'sessions'>('files')
 
   // Freeze the content at its expanded width while it fades out (collapsed
   // && wide): the sliding column then clips it instead of reflowing it. The
@@ -169,13 +175,63 @@ export function SidebarRoot({
         </button>
       </Tooltip>
 
+      {/* Explorer activity tabs (wide only): Files / Git / Sessions. The
+          strip fades with the rest of the wide content on collapse; the rail
+          always shows the session browser's own icon column. */}
+      {wide && (
+        <div className={css.tabs} role="tablist" aria-label={t('tabs.label')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activity === 'files'}
+            className={clsx(css.tab, activity === 'files' && css.tabActive)}
+            onClick={() => { setActivity('files') }}
+          >
+            <IconCodeOutline16 size={13} />
+            <span className={css.tabLabel}>{t('tabs.files')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activity === 'git'}
+            className={clsx(css.tab, activity === 'git' && css.tabActive)}
+            onClick={() => { setActivity('git') }}
+          >
+            <IconBranchOutline16 size={13} />
+            <span className={css.tabLabel}>{t('tabs.git')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activity === 'sessions'}
+            className={clsx(css.tab, activity === 'sessions' && css.tabActive)}
+            onClick={() => { setActivity('sessions') }}
+          >
+            <IconNewChatOutline16 size={13} />
+            <span className={css.tabLabel}>{t('tabs.sessions')}</span>
+          </button>
+        </div>
+      )}
+
       {/* The browsing region fills the column between the controls and the
-          foot in both states; its rail icon column rides the same slot. */}
+          foot in both states; its rail icon column rides the same slot. The
+          active explorer panel renders here in wide mode; the collapsed rail
+          always falls back to the session browser's rail icons. */}
       <div className={css.regionArea}>
-        {renderSlot('sidebar.workspaces', {
-          wide,
-          expandSidebar: () => { if (collapsed) toggleSidebar() },
-        })}
+        {!wide || activity === 'sessions'
+          ? renderSlot('sidebar.workspaces', {
+              wide,
+              expandSidebar: () => { if (collapsed) toggleSidebar() },
+            })
+          : activity === 'files'
+            ? renderSlot('sidebar.explorer.files', {
+                wide,
+                expandSidebar: () => { if (collapsed) toggleSidebar() },
+              })
+            : renderSlot('sidebar.explorer.git', {
+                wide,
+                expandSidebar: () => { if (collapsed) toggleSidebar() },
+              })}
       </div>
 
       {/* Footer actions stack above Settings in both sidebar widths. */}

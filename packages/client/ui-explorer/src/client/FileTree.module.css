@@ -1,0 +1,126 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary, inherit);
+  flex: none;
+}
+
+.headerTitle {
+  font-weight: 600;
+}
+
+.headerPath {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-button-floating-hover, rgba(128, 128, 128, 0.15));
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: left;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row:hover {
+  background: var(--dsw-alias-surface-hover, rgba(128, 128, 128, 0.1));
+}
+
+.row[aria-selected='true'] {
+  background: var(--dsw-alias-surface-active, rgba(128, 128, 128, 0.18));
+}
+
+.chevronSeat {
+  display: inline-flex;
+  width: 12px;
+  flex: none;
+}
+
+.chevron {
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  transition: transform 120ms ease;
+}
+
+.chevronOpen {
+  composes: chevron;
+  transform: rotate(90deg);
+}
+
+.dirIcon,
+.fileIcon {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.busy,
+.empty,
+.rowError {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+}
+
+.rowError {
+  color: var(--dsw-alias-text-danger, #e5534b);
+  white-space: normal;
+  word-break: break-all;
+}

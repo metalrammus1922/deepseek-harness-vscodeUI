@@ -1,0 +1,172 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary, inherit);
+  flex: none;
+}
+
+.branchIcon {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.branch {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.countBadge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  flex: none;
+}
+
+.ahead {
+  color: #2da44e;
+  background: rgba(45, 164, 78, 0.12);
+}
+
+.behind {
+  color: #d29922;
+  background: rgba(210, 153, 34, 0.12);
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-button-floating-hover, rgba(128, 128, 128, 0.15));
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 8px;
+}
+
+.group + .group {
+  margin-top: 6px;
+}
+
+.groupHeader {
+  padding: 4px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count {
+  font-size: 11px;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  line-height: 24px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.row:hover {
+  background: var(--dsw-alias-surface-hover, rgba(128, 128, 128, 0.1));
+}
+
+.letter {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.letterAdded {
+  color: #2da44e;
+  background: rgba(45, 164, 78, 0.15);
+}
+
+.letterModified {
+  color: #d29922;
+  background: rgba(210, 153, 34, 0.15);
+}
+
+.letterDeleted {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.letterRenamed {
+  color: #4493f8;
+  background: rgba(68, 147, 248, 0.15);
+}
+
+.letterOther {
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.fileIcon {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.placeholder,
+.error {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+}
+
+.error {
+  color: var(--dsw-alias-text-danger, #e5534b);
+  white-space: normal;
+  word-break: break-all;
+}

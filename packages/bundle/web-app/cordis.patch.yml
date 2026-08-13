@@ -219,6 +219,12 @@
     - id: ui-workspace
       name: '@deepseek-ai/dsh-client-ui-workspace'
 
+    # Explorer surface: the file tree and Git panels behind the sidebar's
+    # Files/Git activity tabs (ui-sidebar declares the holes; this registers
+    # the occupants).
+    - id: ui-explorer
+      name: '@deepseek-ai/dsh-client-ui-explorer'
+
     # Input triggers: the '/' | '@' pipeline (ui-input-trigger), the command surface over
     # it (ui-commands), and the two reference sources (ui-skill / ui-subagent).
     - id: ui-input-trigger
