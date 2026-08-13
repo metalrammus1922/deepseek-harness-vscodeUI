@@ -3044,10 +3044,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             return err(request, { code: 'cancelled', message: 'fs list was aborted', details: {} })
           }
           return err(request, {
-            code: 'fs-list-unreadable',
+            code: 'directory-unreadable',
             message: 'cannot list ' + (request.payload.path ?? '(cwd)') + ': '
               + (error instanceof Error ? error.message : String(error)),
-            details: {},
+            details: { path: request.payload.path ?? process.cwd() },
           })
         }
       },

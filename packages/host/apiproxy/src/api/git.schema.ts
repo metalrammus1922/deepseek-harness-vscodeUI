@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import type { GitStatus, GitStatusEntry } from './git.ts'
+import type { GitStatusEntry } from './git.ts'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 

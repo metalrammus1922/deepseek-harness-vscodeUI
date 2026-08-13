@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import type { FsEntry, FsListing } from './fs.ts'
+import type { FsEntry } from './fs.ts'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 

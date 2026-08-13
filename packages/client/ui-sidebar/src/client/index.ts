@@ -42,10 +42,13 @@ export function apply(ctx: ClientContext): void {
       name: 'sidebar',
       locale: NS,
       // The shell owns geometry; ui-workspace registers the whole browsing
-      // region (header, search, session list, workspace dialogs), ui-settings
-      // registers the foot trigger + settings panel.
+      // region (header, search, session list, workspace dialogs), ui-explorer
+      // registers the file tree and Git panels behind the activity tabs, and
+      // ui-settings registers the foot trigger + settings panel.
       children: {
         'sidebar.workspaces': { kind: 'single', scope: 'root' },
+        'sidebar.explorer.files': { kind: 'single', scope: 'root' },
+        'sidebar.explorer.git': { kind: 'single', scope: 'root' },
         'sidebar.settings': { kind: 'single', scope: 'root' },
         'sidebar.footer.action': { kind: 'list', scope: 'root' },
       },

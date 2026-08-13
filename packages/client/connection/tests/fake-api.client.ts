@@ -148,6 +148,25 @@ export class FakeApiClient implements IApiClient {
     openPath: payload => this.record('host.openPath', payload, this.onOpenPath(payload)),
   }
 
+  onGitStatus: (payload: unknown) => Promise<RpcResponse<{
+    isRepo: boolean; root: string | null; branch: string | null;
+    entries: { path: string; x: string; y: string; staged: boolean; untracked: boolean; directory: boolean }[];
+    ahead: number; behind: number;
+  }>> = () => Promise.resolve(ok({
+    isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0,
+  }))
+  onFsList: (payload: unknown) => Promise<RpcResponse<{
+    path: string; entries: { name: string; path: string; isDirectory: boolean; hidden: boolean }[]; truncated: boolean;
+  }>> = () => Promise.resolve(ok({ path: '/home/fake', entries: [], truncated: false }))
+
+  readonly git: IApiClient['git'] = {
+    status: payload => this.record('git.status', payload, this.onGitStatus(payload)),
+  }
+
+  readonly fs: IApiClient['fs'] = {
+    list: payload => this.record('fs.list', payload, this.onFsList(payload)),
+  }
+
   readonly workspace: IApiClient['workspace'] = {
     list: (payload: unknown) => this.record('workspace.list', payload, Promise.resolve(ok({ items: [], archivedSessionIds: [] }))),
     create: (payload: unknown) => this.record('workspace.create', payload, Promise.resolve(ok({

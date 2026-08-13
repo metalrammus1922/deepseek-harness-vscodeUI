@@ -18,19 +18,18 @@ type Phase = 'loading' | 'ready' | 'error'
 
 /** Status-letter tint: A added, M modified, D deleted, R renamed, ? untracked. */
 function letterClass(letter: string): string {
-  if (letter === 'A' || letter === '?') return css.letterAdded
-  if (letter === 'M') return css.letterModified
-  if (letter === 'D') return css.letterDeleted
-  if (letter === 'R') return css.letterRenamed
-  return css.letterOther
+  if (letter === 'A' || letter === '?') return css.letterAdded ?? ''
+  if (letter === 'M') return css.letterModified ?? ''
+  if (letter === 'D') return css.letterDeleted ?? ''
+  if (letter === 'R') return css.letterRenamed ?? ''
+  return css.letterOther ?? ''
 }
 
 /** One group of rows (staged / unstaged / untracked). */
-function Group({ label, entries, letterFor, t }: {
-  label: string
+function Group({ label, entries, letterFor }: {
+  label: string | undefined
   entries: readonly GitStatusEntry[]
   letterFor: (entry: GitStatusEntry) => string
-  t: GitPanelProps['t']
 }) {
   if (entries.length === 0) return null
   return (
@@ -116,9 +115,9 @@ export function GitPanel({ useWorkspaces, useSessions, gitStatus, t }: GitPanelP
           && <div className={css.placeholder}>{t('git.clean')}</div>}
         {phase === 'ready' && status !== null && status.isRepo && status.entries.length > 0 && (
           <Fragment>
-            <Group label={t('git.staged')} entries={staged} letterFor={entry => entry.x} t={t} />
-            <Group label={t('git.changes')} entries={unstaged} letterFor={entry => entry.y} t={t} />
-            <Group label={t('git.untracked')} entries={untracked} letterFor={() => '?'} t={t} />
+            <Group label={t('git.staged')} entries={staged} letterFor={entry => entry.x} />
+            <Group label={t('git.changes')} entries={unstaged} letterFor={entry => entry.y} />
+            <Group label={t('git.untracked')} entries={untracked} letterFor={() => '?'} />
           </Fragment>
         )}
       </div>

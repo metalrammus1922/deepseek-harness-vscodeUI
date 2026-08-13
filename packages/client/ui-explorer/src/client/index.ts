@@ -18,7 +18,8 @@ import { GitPanel } from './GitPanel.tsx'
 import type { ExplorerInjected } from './contract/slots.ts'
 import { en, zh, type ExplorerKey } from './locales.ts'
 
-export { FileTree, GitPanel } from './FileTree.tsx'
+export { FileTree } from './FileTree.tsx'
+export { GitPanel } from './GitPanel.tsx'
 export type { ExplorerInjected, FileTreeProps, GitPanelProps } from './contract/slots.ts'
 export type { ExplorerKey } from './locales.ts'
 

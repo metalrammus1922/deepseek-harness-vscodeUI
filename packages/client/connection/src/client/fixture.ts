@@ -2579,7 +2579,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         const target = request.payload.path ?? FIXTURE_HOME
         const children = childrenOf(target)
         if (children === undefined) {
-          return err(request, { code: 'fs-list-unreadable', message: 'cannot list ' + target, details: { path: target } })
+          return err(request, { code: 'directory-unreadable', message: 'cannot list ' + target, details: { path: target } })
         }
         return ok(request, {
           path: target,
@@ -3124,6 +3124,8 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.listDirectory': return this.api.host.listDirectory(request, new AbortController().signal)
       case 'host.createDirectory': return this.api.host.createDirectory(request)
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
+      case 'git.status': return this.api.git.status(request, signal)
+      case 'fs.list': return this.api.fs.list(request, signal)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

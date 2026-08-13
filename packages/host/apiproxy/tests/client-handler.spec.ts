@@ -80,6 +80,12 @@ function scriptedApi(overrides: {
       openPath: r => ok(r, { opened: true as const }),
       ...overrides.host,
     },
+    git: {
+      status: r => ok(r, { isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 }),
+    },
+    fs: {
+      list: r => ok(r, { path: r.payload.path ?? '/', entries: [], truncated: false }),
+    },
     workspace: {
       list: r => ok(r, { items: [], archivedSessionIds: [] }),
       create: r => ok(r, { workspace: { workspaceId: 'w1' as never, path: '/t', title: 't', sessionIds: [], createdAt: '0', updatedAt: '0' }, created: true }),
