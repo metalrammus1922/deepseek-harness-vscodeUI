@@ -18,7 +18,7 @@ export const vs2019EditorTheme = EditorView.theme({
   '&': {
     backgroundColor: '#1e1e1e',
     color: '#dcdcdc',
-    fontSize: '13px',
+    fontSize: 'var(--dsh-font-editor, 13px)',
     height: '100%',
   },
   '.cm-scroller': {

@@ -7,13 +7,18 @@
  * with the runtime sessions service. A second effect seats the theme
  * presenter, which projects ctx.theme snapshots onto document.body.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: the ctx.settingsScope Context merge. Cross-plugin collaboration
+// goes through the service, never a value import (client bundle purity gate).
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PanelActions } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
+import { FontSizePresenter } from './font-size-presenter.ts'
+import { FONT_SETTINGS_NAMESPACE, type FontSettings } from '../font-settings.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
 // keep a symbol exported; test-only/package-internal symbols live off /src).
@@ -115,7 +120,7 @@ export interface DetailsOwnerProps {}
 export interface FileViewerOwnerProps {}
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
-export const inject = ['slots', 'theme']
+export const inject = ['slots', 'theme', 'connection', 'remote', 'settingsScope']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
@@ -164,4 +169,22 @@ export function apply(ctx: ClientContext): void {
       presenter.dispose()
     }
   }, 'ui-layout: theme presenter')
+
+  // Workbench font sizes: the three columns consume body-level CSS variables
+  // (`--dsh-font-sidebar/editor/chat`) projected from the durable section;
+  // the presenter retracts only what it wrote, on dispose.
+  ctx.effect(() => {
+    const host = ctx.settingsScope.bind<FontSettings>({ namespace: FONT_SETTINGS_NAMESPACE })
+    const presenter = new FontSizePresenter()
+    const adopt = (scope: SettingsScope<FontSettings>): void => {
+      const section = scope.getSnapshot().value
+      if (section !== undefined) presenter.apply(section)
+    }
+    adopt(host)
+    const off = host.subscribe(() => { adopt(host) })
+    return () => {
+      off()
+      presenter.dispose()
+    }
+  }, 'ui-layout: font-size presenter')
 }

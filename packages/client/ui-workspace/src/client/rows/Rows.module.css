@@ -60,7 +60,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--dsh-font-sidebar, 14px);
   line-height: 20px;
 }
 
@@ -176,13 +176,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--dsh-font-sidebar, 14px);
   line-height: 20px;
 }
 
 .renameInput {
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--dsh-font-sidebar, 14px);
   line-height: 20px;
   padding: 0 2px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -200,14 +200,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
 }
 
 .time {
   flex: none;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
 }

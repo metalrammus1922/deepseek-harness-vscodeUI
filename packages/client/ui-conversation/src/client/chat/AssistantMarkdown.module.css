@@ -6,7 +6,11 @@
 .root {
   display: flex;
   flex-direction: column;
-  font-size: 16px;
+  /* Chat font size rides the ui-fonts setting; the markdown base token is
+     re-declared inside this subtree so MarkdownText's `font:` shorthand
+     resolves to the same size (the global token pins 16px otherwise). */
+  --dsw-font-markdown-base: var(--dsh-font-chat, 16px)/28px var(--dsw-font-family);
+  font-size: var(--dsh-font-chat, 16px);
   line-height: 28px;
   color: var(--dsw-alias-label-primary);
 }

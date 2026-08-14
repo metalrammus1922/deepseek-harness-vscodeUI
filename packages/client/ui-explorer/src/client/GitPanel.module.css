@@ -10,7 +10,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   color: var(--dsw-alias-text-secondary, inherit);
   flex: none;
 }
@@ -102,7 +102,7 @@
   gap: 6px;
   padding: 0 10px;
   line-height: 24px;
-  font-size: 13px;
+  font-size: var(--dsh-font-sidebar, 13px);
   white-space: nowrap;
 }
 
@@ -161,7 +161,7 @@
 .placeholder,
 .error {
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
 }
 
@@ -193,7 +193,7 @@
   width: 100%;
   padding: 0 10px;
   line-height: 26px;
-  font-size: 13px;
+  font-size: var(--dsh-font-sidebar, 13px);
   border: none;
   background: transparent;
   color: inherit;

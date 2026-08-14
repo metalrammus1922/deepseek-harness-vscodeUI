@@ -344,6 +344,11 @@ describe('settings domain', () => {
     ctx.settings.register(settingsNamespace('ui-conversation'), z.object({
       busyEnter: z.union(['queue', 'steer']).default('queue'),
     }))
+    ctx.settings.register(settingsNamespace('ui-fonts'), z.object({
+      sidebarFontSize: z.number().min(8).max(32).default(13),
+      editorFontSize: z.number().min(8).max(32).default(13),
+      chatFontSize: z.number().min(8).max(32).default(16),
+    }))
     ctx.settings.register(settingsNamespace('shell'), z.object({
       timeoutMs: z.number().default(120_000),
     }))
@@ -358,7 +363,7 @@ describe('settings domain', () => {
     const value = expectOk(await api.settings.describe(request({})))
     expect(value.namespaces.map(view => view.ns)).toEqual([
       'llm-deepseek', 'permission', 'ui-theme', 'locale', 'ui-conversation',
-      'shell', 'agent-loop', 'web-search-deepseek',
+      'ui-fonts', 'shell', 'agent-loop', 'web-search-deepseek',
     ])
     const permission = expectOk(await api.settings.mutate(request({
       ns: 'permission',

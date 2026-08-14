@@ -10,7 +10,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   color: var(--dsw-alias-text-secondary, inherit);
   flex: none;
 }
@@ -65,7 +65,7 @@
   border: none;
   background: transparent;
   color: inherit;
-  font-size: 13px;
+  font-size: var(--dsh-font-sidebar, 13px);
   line-height: 24px;
   text-align: left;
   padding-top: 0;
@@ -115,7 +115,7 @@
 .empty,
 .rowError {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--dsh-font-sidebar, 12px);
   color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
 }
 
