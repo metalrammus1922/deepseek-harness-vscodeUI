@@ -25,6 +25,10 @@ export interface ExplorerInjected {
   fsRead(path: string, signal?: AbortSignal): Promise<FsFile>
   /** One-shot git status snapshot for a directory. */
   gitStatus(cwd: string, signal?: AbortSignal): Promise<GitStatus>
+  /** Append a code selection reference to the AI chat composer (no-op without a session). */
+  addToChat(text: string): void
+  /** Report the viewer's active tab so the chat treats it as preferred context. */
+  onActiveFile(file: { path: string; name: string } | null): void
 }
 
 /** Full props of the file-tree entry (opens files through the shared store). */

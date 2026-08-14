@@ -171,6 +171,21 @@ declare module '@deepseek-ai/cordis' {
      * @mode emit
      */
     'connection/reset'(): void
+    /**
+     * The center file viewer appended a code selection to the AI chat
+     * composer. The conversation layer owns the target: the current
+     * session's draft.
+     * @mode emit
+     * @param payload - the assembled reference + code text.
+     */
+    'explorer/add-to-chat'(payload: { text: string }): void
+    /**
+     * The file currently open in the center viewer (null when none). The
+     * conversation layer keeps it as the preferred file context for sends.
+     * @mode emit
+     * @param payload - the active file, or null when every tab is closed.
+     */
+    'explorer/active-file'(payload: { path: string; name: string } | null): void
   }
   interface Context {
     slots: import('./slots.ts').SlotRegistry

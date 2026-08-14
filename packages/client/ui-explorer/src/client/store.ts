@@ -1,8 +1,9 @@
 /**
- * Explorer selection store: the file the center viewer shows. Declared on the
- * file-tree entry and shared by handle with the file-viewer entry (the
+ * Explorer selection store: the open file tabs and the active one. Declared
+ * on the file-tree entry and shared by handle with the file-viewer entry (the
  * cross-registration share the store seat exists for), so a click in the tree
- * opens the file in the center workbench without any cross-package service.
+ * opens or activates a tab in the center workbench without any cross-package
+ * service.
  */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
 
@@ -14,15 +15,20 @@ export interface OpenedFile {
   name: string
 }
 
-/** Viewer-selection state: at most one open file. */
-type ExplorerState = { open: OpenedFile | null }
+/** Viewer state: the open tabs and the active tab's path (null when empty). */
+type ExplorerState = {
+  tabs: OpenedFile[]
+  activePath: string | null
+}
 
 /** The complete mutation set of the explorer store. */
 type ExplorerActions = {
-  /** Open (or switch to) one file. */
+  /** Open (or re-activate) one file: upserts its tab and activates it. */
   openFile: (draft: ExplorerState, file: OpenedFile) => void
-  /** Close the viewer back to its empty state. */
-  closeFile: (draft: ExplorerState) => void
+  /** Activate an existing tab by path; unknown paths are ignored. */
+  activateFile: (draft: ExplorerState, path: string) => void
+  /** Close one tab; closing the active tab activates its right neighbour. */
+  closeFile: (draft: ExplorerState, path: string) => void
 }
 
 /**
@@ -31,10 +37,30 @@ type ExplorerActions = {
  */
 export function createExplorerStore(): EngineStoreHandle<ExplorerState, ExplorerActions> {
   const handle = defineStore({
-    init: (): ExplorerState => ({ open: null }),
+    init: (): ExplorerState => ({ tabs: [], activePath: null }),
     actions: {
-      openFile: (d, file) => { d.open = file },
-      closeFile: (d) => { d.open = null },
+      openFile: (d, file) => {
+        const index = d.tabs.findIndex(tab => tab.path === file.path)
+        if (index === -1) d.tabs = [...d.tabs, file]
+        else d.tabs = d.tabs.map((tab, position) => position === index ? file : tab)
+        d.activePath = file.path
+      },
+      activateFile: (d, path) => {
+        if (d.tabs.some(tab => tab.path === path)) d.activePath = path
+      },
+      closeFile: (d, path) => {
+        const index = d.tabs.findIndex(tab => tab.path === path)
+        if (index === -1) return
+        d.tabs = d.tabs.filter(tab => tab.path !== path)
+        if (d.activePath !== path) return
+        if (d.tabs.length === 0) {
+          d.activePath = null
+          return
+        }
+        // The closed tab's right neighbour takes over; past the end, the new
+        // tail does.
+        d.activePath = d.tabs[Math.min(index, d.tabs.length - 1)]?.path ?? null
+      },
     },
   })
   return handle

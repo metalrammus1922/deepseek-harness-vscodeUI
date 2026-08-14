@@ -34,6 +34,12 @@ export interface IConversation {
    */
   readonly blocks: ComposerBlocks
   /**
+   * Set the preferred file context: the file the center viewer has open.
+   * Every send prefaces its text with this path so the model can locate it.
+   * @param file - the active viewer file, or null when no tab is open.
+   */
+  setActiveFile(file: { path: string; name: string } | null): void
+  /**
    * Send a prompt into the caller scope's session (queued turn).
    * @param text - prompt text, sent verbatim as one text block.
    * @returns completion; business failures reject (and land in promptError).
@@ -93,6 +99,8 @@ export class ConversationController extends Service implements IConversation {
   readonly input: SessionInputResolver
   /** The per-session composer-block registry. */
   readonly blocks: ComposerBlocks
+  /** The center viewer's active file, prefixed to every send as context. */
+  private activeFile: { path: string; name: string } | null = null
   private readonly draftAttachments = new Map<DraftAttachmentId, ComposerAttachment>()
   private readonly imageUrls = new Map<string, ImageUrlEntry>()
   private readonly imageGenerations = new Map<SessionId, number>()
@@ -133,7 +141,18 @@ export class ConversationController extends Service implements IConversation {
   }
 
   /**
-   * Submit ordered draft images with text through one host admission.
+   * Set the preferred file context (the center viewer's active tab).
+   * @param file - the active viewer file, or null when no tab is open.
+   */
+  setActiveFile(file: { path: string; name: string } | null): void {
+    this.activeFile = file
+  }
+
+  /**
+   * Submit ordered draft images with text through one host admission. When a
+   * viewer file is open and the text does not already name it, the send is
+   * prefaced with the file path so the model treats it as the preferred
+   * context.
    * @param session - target session.
    * @param text - serialized prompt text.
    * @param imageIds - ordered draft-local attachment ids.
@@ -150,7 +169,8 @@ export class ConversationController extends Service implements IConversation {
       throw new Error('conversation.sendSession: one or more draft images are no longer available')
     }
     const uploaded = await this.serializeImages(attachments.map(attachment => attachment.file))
-    const content = [...uploaded, ...(text === '' ? [] : [{ type: 'text' as const, text }])]
+    const prefaced = this.prefacedText(text)
+    const content = [...uploaded, ...(prefaced === '' ? [] : [{ type: 'text' as const, text: prefaced }])]
     const result = await session.prompt(content, mode)
     if (!result.ok) throw new Error(`conversation.send failed: ${result.error.code}: ${result.error.message}`)
     this.releaseDraftImages(attachments)
@@ -310,6 +330,19 @@ export class ConversationController extends Service implements IConversation {
     const sessions = this.ctx.get('sessions')
     if (sessions === undefined) throw new Error('conversation: sessions service unavailable')
     return sessions
+  }
+
+  /**
+   * Prepend the active viewer file to one send, unless the text already
+   * names it (a selection reference includes the path, so adding it again
+   * would duplicate).
+   * @param text - the user's draft text.
+   * @returns the text to send (unchanged when no file context applies).
+   */
+  private prefacedText(text: string): string {
+    if (this.activeFile === null || text === '') return text
+    if (text.includes(this.activeFile.path)) return text
+    return `当前打开文件: ${this.activeFile.path}（${this.activeFile.name}）\n${text}`
   }
 
   /** Convert browser files to canonical base64 prompt parts. */

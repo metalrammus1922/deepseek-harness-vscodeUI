@@ -1,5 +1,6 @@
-/* Center file viewer (VSCode-style workbench): a tab header with the opened
-   file's name and a close button over a scrolling text body. */
+/* Center file viewer (VSCode workbench): a tab strip over a line-numbered,
+   read-only code textarea. Selecting lines reveals the "添加到对话" bar that
+   appends a `name start-end` reference plus the selected code to the AI chat. */
 
 .root {
   display: flex;
@@ -10,74 +11,124 @@
   color: var(--dsw-alias-label-primary, inherit);
 }
 
-.header {
+.tabs {
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  padding: 4px 6px 0;
   border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
-  font-size: 13px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.tab {
+.tab,
+.tabActive {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  height: 26px;
+  max-width: 220px;
+  height: 30px;
   padding: 0 8px;
   border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
   border-bottom: none;
   border-radius: 6px 6px 0 0;
-  background: var(--dsw-alias-button-elevated-fill, rgba(128, 128, 128, 0.12));
-  color: var(--dsw-alias-label-primary, inherit);
   font-size: 12px;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab {
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, rgba(200, 200, 200, 0.7));
+}
+
+.tabActive {
+  background: var(--dsw-alias-button-elevated-fill, rgba(128, 128, 128, 0.14));
+  color: var(--dsw-alias-label-primary, inherit);
+  font-weight: 500;
 }
 
 .tabName {
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  min-width: 0;
 }
 
 .closeButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: inherit;
   cursor: pointer;
   padding: 0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
+  flex: none;
 }
 
 .closeButton:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.2));
 }
 
-.path {
+.tabsEmpty {
+  align-self: center;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary, rgba(200, 200, 200, 0.5));
+  padding: 0 6px 4px;
+}
+
+.selectionBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
+  background: var(--dsw-alias-surface-raised, rgba(128, 128, 128, 0.08));
+  font-size: 12px;
+}
+
+.selectionInfo {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--dsw-alias-label-secondary, rgba(200, 200, 200, 0.7));
+  color: var(--dsw-alias-label-secondary, rgba(200, 200, 200, 0.8));
+}
+
+.addButton {
+  flex: none;
+  height: 26px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--dsw-specific-accent, #2f81f7);
+  color: #fff;
   font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  filter: brightness(1.1);
 }
 
 .body {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 12px 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty,
@@ -94,18 +145,57 @@
   word-break: break-all;
 }
 
-.code {
+.codeArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.gutter {
+  flex: none;
+  width: 52px;
+  overflow: hidden;
+  border-right: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.2));
+  background: var(--dsw-alias-surface-muted, rgba(128, 128, 128, 0.05));
+  user-select: none;
+}
+
+.gutterNumbers {
   margin: 0;
+  padding: 10px 8px 10px 12px;
   font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12.5px;
   line-height: 1.6;
+  text-align: right;
+  color: var(--dsw-alias-label-tertiary, rgba(200, 200, 200, 0.55));
   white-space: pre;
   tab-size: 2;
+}
+
+.code {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
   color: var(--dsw-alias-label-primary, inherit);
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  padding: 10px 14px;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+.code::selection {
+  background: rgba(47, 129, 247, 0.35);
 }
 
 .truncated {
-  padding: 6px 0 12px;
+  flex: none;
+  padding: 4px 12px 8px;
   font-size: 12px;
   color: var(--dsw-alias-text-warning, #d29922);
 }
