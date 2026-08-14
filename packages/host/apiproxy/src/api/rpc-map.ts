@@ -48,6 +48,7 @@ export interface RpcMethodMap {
   'git.status': GitApi['status']
   'fs.list': FsApi['list']
   'fs.read': FsApi['read']
+  'fs.write': FsApi['write']
   'workspace.list': WorkspaceApi['list']
   'workspace.create': WorkspaceApi['create']
   'workspace.rename': WorkspaceApi['rename']

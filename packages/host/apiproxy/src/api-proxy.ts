@@ -110,7 +110,7 @@ import {
 } from '@deepseek-ai/dsh-api-remotes'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
 import { gitStatus } from './git-runner.ts'
-import { listFsDirectory, readFsFile } from './fs-lister.ts'
+import { listFsDirectory, readFsFile, writeFsFile } from './fs-lister.ts'
 
 /** Page size when history is called without maxMessages. */
 const DEFAULT_MAX_MESSAGES = 50
@@ -3065,6 +3065,24 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, {
             code: 'file-unreadable',
             message: 'cannot read ' + request.payload.path + ': '
+              + (error instanceof Error ? error.message : String(error)),
+            details: { path: request.payload.path },
+          })
+        }
+      },
+
+      // Text write of one file for the browser file viewer's save path. The
+      // path rules and the byte bound live in the lister.
+      async write(request, signal) {
+        try {
+          return ok(request, { path: await writeFsFile(request.payload.path, request.payload.content) })
+        } catch (error: unknown) {
+          if (signal.aborted) {
+            return err(request, { code: 'cancelled', message: 'fs write was aborted', details: {} })
+          }
+          return err(request, {
+            code: 'file-unwritable',
+            message: 'cannot write ' + request.payload.path + ': '
               + (error instanceof Error ? error.message : String(error)),
             details: { path: request.payload.path },
           })

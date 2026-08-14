@@ -2,8 +2,9 @@
  * Explorer surface plugin, browser half: the file tree, Git panel, and the
  * center file viewer. The tree/Git seats fill ui-sidebar's
  * `sidebar.explorer.files` / `sidebar.explorer.git` holes; the viewer fills
- * ui-layout's `file-viewer` workbench. All three are read-only consumers of
- * the injected RPC verbs; the root directory comes from the current session's
+ * ui-layout's `file-viewer` workbench. The tree and viewer consume the
+ * injected RPC verbs (listing/read, plus write for the viewer's save path);
+ * the root directory comes from the current session's
  * workspace (falling back to the first registered workspace), so the panels
  * always point at the project the user is working in.
  */
@@ -56,6 +57,7 @@ export function apply(ctx: ClientContext): void {
   const injected = (): ExplorerInjected => ({
     fsList: (path, signal) => ctx.fs.list(path, signal),
     fsRead: (path, signal) => ctx.fs.read(path, signal),
+    fsWrite: (path, content, signal) => ctx.fs.write(path, content, signal),
     gitStatus: (cwd, signal) => ctx.git.status(cwd, signal),
     // The conversation layer owns the composer target: this plugin only
     // announces the intent (and the active file for preferred context).

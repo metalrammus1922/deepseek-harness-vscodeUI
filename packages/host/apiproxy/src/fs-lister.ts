@@ -6,7 +6,7 @@
  * @module @deepseek-ai/dsh-host-apiproxy
  */
 
-import { open, readdir, stat } from 'node:fs/promises'
+import { open, readdir, stat, writeFile } from 'node:fs/promises'
 import { join, posix, resolve, win32 } from 'node:path'
 import type { FsEntry, FsFile, FsListing } from './api/fs.ts'
 
@@ -82,4 +82,29 @@ export async function readFsFile(path: string): Promise<FsFile> {
   } finally {
     await handle.close()
   }
+}
+
+/**
+ * Write one file's text content (UTF-8), creating or replacing the target.
+ * A missing parent directory, a directory or symlink target, or an unwritable
+ * location throws; content larger than the write bound is refused (a save
+ * must never silently truncate the file the viewer just read whole).
+ * @param path - absolute file path.
+ * @param content - new file content.
+ * @returns the written path.
+ */
+export async function writeFsFile(path: string, content: string): Promise<string> {
+  if (!fsFullyQualified(path)) {
+    throw new Error(`cannot write "${path}": not a fully qualified path`)
+  }
+  if (Buffer.byteLength(content, 'utf8') > MAX_FILE_BYTES) {
+    throw new Error(`cannot write "${path}": content exceeds the ${MAX_FILE_BYTES}-byte write bound`)
+  }
+  const target = resolve(path)
+  const info = await stat(target).catch(() => null)
+  if (info !== null && !info.isFile()) {
+    throw new Error(`cannot write "${target}": not a regular file`)
+  }
+  await writeFile(target, content, 'utf8')
+  return target
 }

@@ -3,7 +3,7 @@
  * and therefore exactly what the test runtime's fs double must implement.
  * The concrete class owns the wire calls.
  */
-import type { FsFile, FsListing } from '@deepseek-ai/dsh-api-remotes/client'
+import type { FsFile, FsListing, FsWriteResult } from '@deepseek-ai/dsh-api-remotes/client'
 
 /** The fs-service face injected as `ctx.fs`. */
 export interface IFs {
@@ -23,4 +23,14 @@ export interface IFs {
    * @returns the file content, truncated at the host read bound.
    */
   read(path: string, signal?: AbortSignal): Promise<FsFile>
+  /**
+   * Write one file's text content (UTF-8), creating or replacing the target.
+   * A non-fully-qualified path, a directory, or an unwritable target rejects
+   * with FsError; content over the host write bound is refused, not cut.
+   * @param path - absolute file path.
+   * @param content - new file content.
+   * @param signal - aborts the wire request.
+   * @returns the written file's absolute path.
+   */
+  write(path: string, content: string, signal?: AbortSignal): Promise<FsWriteResult>
 }

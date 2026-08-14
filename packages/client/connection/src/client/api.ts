@@ -8,7 +8,7 @@
 export type {
   ApiProxy, SessionsApi, SessionSearchItem, SessionSummary, PromptContentPart, HostApi, EventsApi, MuxFrame, HostFrame,
   ApprovalResponsePayload, QuestionResponsePayload, HistoryEntry, ToolEventView,
-  DirectoryEntry, DirectoryListing, FsApi, FsEntry, FsFile, FsListing, GitApi, GitStatus, GitStatusEntry,
+  DirectoryEntry, DirectoryListing, FsApi, FsEntry, FsFile, FsListing, FsWriteResult, GitApi, GitStatus, GitStatusEntry,
   ResponseValue, WorkspaceApi, WorkspaceId, WorkspaceView,
   SkillsApi, SkillEntry,
   ModelCatalogFailure, ModelCatalogModel, ModelProviderGroup, ModelReasoning,

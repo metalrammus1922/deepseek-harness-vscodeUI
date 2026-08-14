@@ -204,6 +204,8 @@ export class FakeApiClient implements IApiClient {
   }>> = payload => Promise.resolve(ok({
     path: (payload as { path: string }).path, content: '', truncated: false,
   }))
+  onFsWrite: (payload: unknown) => Promise<RpcResponse<{ path: string }>> =
+    payload => Promise.resolve(ok({ path: (payload as { path: string }).path }))
 
   readonly git: IApiClient['git'] = {
     status: (payload: unknown) => this.record('git.status', payload, this.onGitStatus(payload)),
@@ -212,6 +214,7 @@ export class FakeApiClient implements IApiClient {
   readonly fs: IApiClient['fs'] = {
     list: (payload: unknown) => this.record('fs.list', payload, this.onFsList(payload)),
     read: (payload: unknown) => this.record('fs.read', payload, this.onFsRead(payload)),
+    write: (payload: unknown) => this.record('fs.write', payload, this.onFsWrite(payload)),
   }
 
   // The archive-set field defaults at the binding below so list stubs keep

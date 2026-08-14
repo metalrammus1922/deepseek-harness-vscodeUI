@@ -57,11 +57,11 @@ describe('theme boot index transform', () => {
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(dark)
   })
 
-  it('defaults to system and falls back to light when matchMedia is unavailable', () => {
+  it('defaults to dark and needs no matchMedia (vscodeUI fork default)', () => {
     vi.stubGlobal('matchMedia', undefined)
     executeBootstrap()
-    expect(document.documentElement.style.colorScheme).toBe('light')
-    expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+    expect(document.documentElement.style.colorScheme).toBe('dark')
+    expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(true)
   })
 
   it('appends the script to a body-less fragment', () => {

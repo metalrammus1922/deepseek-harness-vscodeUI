@@ -1,4 +1,4 @@
-/** FsRuntime projects the Host fs domain for UI consumers (read-only listing). */
+/** FsRuntime projects the Host fs domain for UI consumers (listing, read, and write). */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
@@ -30,6 +30,12 @@ export class FsRuntime implements IFs {
 
   async read(path: string, signal?: AbortSignal) {
     const response = await this.api.fs.read({ path }, signal)
+    if (!response.result.ok) throw new FsError(response.result.error)
+    return response.result.value
+  }
+
+  async write(path: string, content: string, signal?: AbortSignal) {
+    const response = await this.api.fs.write({ path, content }, signal)
     if (!response.result.ok) throw new FsError(response.result.error)
     return response.result.value
   }

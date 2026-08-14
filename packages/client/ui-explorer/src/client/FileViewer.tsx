@@ -1,28 +1,35 @@
 /**
  * Center file viewer (ui-layout's 'file-viewer' seat): the open file tabs
  * from the shared explorer store, with the active tab's text read through
- * ctx.fs.read. Trae-style workbench: select lines in the textarea and press
- * "添加到对话" to append a `file start-end` reference plus the selected code
- * to the AI chat composer. Root-scoped — no session needed to view files.
+ * ctx.fs.read and written back through ctx.fs.write. The editor is a
+ * CodeMirror 6 instance themed as VS2019 Dark with per-extension syntax
+ * highlighting; select code and press "添加到对话" to append a `file
+ * start-end` reference plus the selection to the AI chat composer; edit
+ * in place and save with the toolbar button or Ctrl+S. Root-scoped — no
+ * session needed to view files.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { EditorState } from '@codemirror/state'
+import { EditorView, keymap, lineNumbers } from '@codemirror/view'
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import type { FileViewerProps } from './contract/slots.ts'
+import { languageForPath } from './language.ts'
+import { vs2019EditorExtensions } from './vs2019-theme.ts'
 import css from './FileViewer.module.css'
 
 type Phase = 'idle' | 'loading' | 'ready' | 'error'
 
-/** 1-based line of a textarea character offset. */
-function lineAt(content: string, offset: number): number {
-  return content.slice(0, Math.min(offset, content.length)).split('\n').length
-}
-
 /**
- * Render the open file tabs and the active file's content with line-based
- * selection for adding code to the AI chat.
+ * Render the open file tabs and the active file's content in a VS2019-Dark
+ * CodeMirror editor with line-based selection for adding code to the AI
+ * chat and in-place editing saved back through fsWrite. Each open tab keeps
+ * its own draft, so switching tabs never loses unsaved edits; truncated
+ * reads stay read-only (saving them would overwrite the file with the cut
+ * content).
  * @param props - composed slot props (store share + injected verbs + copy).
  * @returns the viewer element tree.
  */
-export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile, t }: FileViewerProps) {
+export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onActiveFile, t }: FileViewerProps) {
   const tabs = useStore(s => s.tabs)
   const activePath = useStore(s => s.activePath)
   const active = tabs.find(tab => tab.path === activePath) ?? null
@@ -33,30 +40,31 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
   }, [active, onActiveFile])
 
   const [phase, setPhase] = useState<Phase>('idle')
-  const [content, setContent] = useState<string | null>(null)
-  const [truncated, setTruncated] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const areaRef = useRef<HTMLTextAreaElement | null>(null)
-  const gutterRef = useRef<HTMLDivElement | null>(null)
+  // Per-tab editor state: the on-disk base text and the current working copy.
+  const [saved, setSaved] = useState<Record<string, string>>({})
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [truncated, setTruncated] = useState<Record<string, boolean>>({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Read the active file; a superseded tab aborts its in-flight read.
+  // Read the active file; a superseded tab aborts its in-flight read. A tab's
+  // draft is seeded only on its first load, so switching away and back keeps
+  // the working copy.
   useEffect(() => {
     if (active === null) {
       setPhase('idle')
-      setContent(null)
       setError(null)
-      setTruncated(false)
       return
     }
     const controller = new AbortController()
     setPhase('loading')
-    setContent(null)
     setError(null)
-    setTruncated(false)
     fsRead(active.path, controller.signal).then((file) => {
       if (controller.signal.aborted) return
-      setContent(file.content)
-      setTruncated(file.truncated)
+      setSaved(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.content } : prev)
+      setDrafts(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.content } : prev)
+      setTruncated(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.truncated } : prev)
       setPhase('ready')
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return
@@ -66,46 +74,123 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
     return () => { controller.abort() }
   }, [active, fsRead])
 
-  // Keep the line-number gutter scrolling with the textarea.
-  const syncScroll = (): void => {
-    const area = areaRef.current
-    const gutter = gutterRef.current
-    if (area === null || gutter === null) return
-    gutter.scrollTop = area.scrollTop
+  const activeSaved = active === null ? undefined : saved[active.path]
+  const activeDraft = active === null ? undefined : drafts[active.path]
+  const activeTruncated = active === null ? false : truncated[active.path] === true
+  const dirty = active !== null && activeSaved !== undefined && activeDraft !== undefined
+    && activeDraft !== activeSaved
+
+  // Save the active tab's draft back to disk; success moves the saved base
+  // forward so the tab turns clean.
+  const save = async (): Promise<void> => {
+    if (active === null || activeDraft === undefined || saving || activeTruncated) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await fsWrite(active.path, activeDraft)
+      setSaved(prev => ({ ...prev, [active.path]: activeDraft }))
+      setTruncated(prev => ({ ...prev, [active.path]: false }))
+    } catch (reason: unknown) {
+      setSaveError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      setSaving(false)
+    }
   }
 
-  // Selected line range (1-based) from the textarea's native selection.
+  // Ctrl/Cmd+S saves the active tab and never falls through to the browser's
+  // save-as dialog while a file is open. Re-subscribes each render so the
+  // listener always captures the current tab and draft.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && active !== null) {
+        event.preventDefault()
+        void save()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => { window.removeEventListener('keydown', onKeyDown) }
+  })
+
+  // ---- CodeMirror wiring ----
+  const cmHostRef = useRef<HTMLDivElement | null>(null)
+  const cmRef = useRef<EditorView | null>(null)
+  const lastPathRef = useRef<string | null>(null)
+  const lastReadOnlyRef = useRef(false)
+  // The update listener reads the latest callbacks through refs so the
+  // editor instance never needs rebuilding for a state change.
+  const onEditorChangeRef = useRef<(path: string, doc: string) => void>(() => {})
+  const onEditorSelectionRef = useRef<(state: EditorState) => void>(() => {})
+
+  // Selected line range (1-based) from the CodeMirror selection.
   const [selection, setSelection] = useState<{ start: number; end: number } | null>(null)
-  const readSelection = (): void => {
-    const area = areaRef.current
-    if (area === null || content === null) return
-    const start = area.selectionStart
-    const end = area.selectionEnd
-    if (end <= start) {
+
+  onEditorChangeRef.current = (path, doc) => {
+    setDrafts(prev => (prev[path] === doc ? prev : { ...prev, [path]: doc }))
+    if (active !== null && path === active.path) setSaveError(null)
+  }
+  onEditorSelectionRef.current = (state) => {
+    const { from, to } = state.selection.main
+    if (to <= from || state.doc.sliceString(from, to).trim() === '') {
       setSelection(null)
       return
     }
-    const text = content.slice(start, end)
-    if (text.trim() === '') {
-      setSelection(null)
-      return
-    }
-    const startLine = lineAt(content, start)
-    const endLine = lineAt(content, end)
-    setSelection({ start: startLine, end: endLine })
+    setSelection({ start: state.doc.lineAt(from).number, end: state.doc.lineAt(to).number })
   }
 
-  const lineCount = content === null ? 0 : content.split('\n').length
-  const gutterNumbers = useMemo(
-    () => (lineCount === 0 ? '' : Array.from({ length: lineCount }, (_, i) => String(i + 1)).join('\n')),
-    [lineCount],
-  )
+  // Mount the editor once; content/language/read-only follow in the sync effect.
+  useEffect(() => {
+    const host = cmHostRef.current
+    if (host === null) return
+    const view = new EditorView({
+      parent: host,
+      state: EditorState.create({ doc: '', extensions: [vs2019EditorExtensions, lineNumbers()] }),
+    })
+    cmRef.current = view
+    return () => {
+      view.destroy()
+      cmRef.current = null
+      lastPathRef.current = null
+      lastReadOnlyRef.current = false
+    }
+  }, [])
+
+  // Rebuild the editor state when the active tab or its read-only guard
+  // changes (language + readOnly ride the state); otherwise sync the doc.
+  useEffect(() => {
+    const view = cmRef.current
+    if (view === null || active === null || activeDraft === undefined) return
+    if (lastPathRef.current !== active.path || lastReadOnlyRef.current !== activeTruncated) {
+      lastPathRef.current = active.path
+      lastReadOnlyRef.current = activeTruncated
+      view.setState(EditorState.create({
+        doc: activeDraft,
+        extensions: [
+          vs2019EditorExtensions,
+          lineNumbers(),
+          history(),
+          keymap.of([...defaultKeymap, ...historyKeymap]),
+          languageForPath(active.path),
+          EditorState.readOnly.of(activeTruncated),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) onEditorChangeRef.current(active.path, update.state.doc.toString())
+            if (update.docChanged || update.selectionSet) onEditorSelectionRef.current(update.state)
+          }),
+        ],
+      }))
+      return
+    }
+    const current = view.state.doc.toString()
+    if (current !== activeDraft) {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: activeDraft } })
+    }
+  }, [active?.path, activeDraft, activeTruncated])
 
   /** Assemble the `name start-end` reference plus the selected lines and send it to the composer. */
   const addSelectionToChat = (): void => {
-    const area = areaRef.current
-    if (area === null || content === null || active === null || selection === null) return
-    const text = content.slice(area.selectionStart, area.selectionEnd)
+    const view = cmRef.current
+    if (view === null || active === null || selection === null) return
+    const { from, to } = view.state.selection.main
+    const text = view.state.doc.sliceString(from, to)
     const body = [
       selection.start === selection.end
         ? `${active.name} ${selection.start}`
@@ -116,6 +201,21 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
     addToChat(body)
     setSelection(null)
   }
+
+  // Close a tab and drop its per-tab editor state (unsaved drafts are
+  // discarded, mirroring the plain tab-close action).
+  const closeTab = (path: string): void => {
+    actions.closeFile(path)
+    const without = <T,>(record: Record<string, T>): Record<string, T> =>
+      Object.fromEntries(Object.entries(record).filter(([key]) => key !== path))
+    setDrafts(prev => without(prev))
+    setSaved(prev => without(prev))
+    setTruncated(prev => without(prev))
+    setSelection(null)
+  }
+
+  const tabDirty = (path: string): boolean =>
+    saved[path] !== undefined && drafts[path] !== undefined && drafts[path] !== saved[path]
 
   return (
     <div className={css.root}>
@@ -128,6 +228,7 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
             className={tab.path === activePath ? css.tabActive : css.tab}
             onClick={() => { actions.activateFile(tab.path) }}
           >
+            {tabDirty(tab.path) && <span className={css.dirtyDot} title={t('viewer.modified')} aria-label={t('viewer.modified')} />}
             <span className={css.tabName} title={tab.path}>{tab.name}</span>
             <button
               type="button"
@@ -136,7 +237,7 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
               title={t('viewer.close')}
               onClick={(event) => {
                 event.stopPropagation()
-                actions.closeFile(tab.path)
+                closeTab(tab.path)
               }}
             >
               ×
@@ -145,6 +246,21 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
         ))}
         {tabs.length === 0 && <span className={css.tabsEmpty}>{t('viewer.tabsEmpty')}</span>}
       </div>
+      {(dirty || saving || saveError !== null || activeTruncated) && (
+        <div className={css.editorBar}>
+          <span className={saveError !== null ? css.editorBarError : activeTruncated ? css.editorBarWarning : css.editorBarInfo}>
+            {saveError !== null ? `${t('viewer.saveFailed')} ${saveError}`
+              : activeTruncated ? t('viewer.truncatedNoEdit')
+                : t('viewer.modified')}
+          </span>
+          {!activeTruncated && (
+            <button type="button" className={css.saveButton} disabled={!dirty || saving}
+              title={t('viewer.saveShortcut')} onClick={() => void save()}>
+              {saving ? t('viewer.saving') : t('viewer.save')}
+            </button>
+          )}
+        </div>
+      )}
       {selection !== null && (
         <div className={css.selectionBar}>
           <span className={css.selectionInfo}>
@@ -161,25 +277,8 @@ export function FileViewer({ useStore, actions, fsRead, addToChat, onActiveFile,
         {phase === 'idle' && <div className={css.empty}>{t('viewer.empty')}</div>}
         {phase === 'loading' && <div className={css.loading}>{t('viewer.loading')}</div>}
         {phase === 'error' && <div className={css.error}>{t('viewer.error')} {error}</div>}
-        {phase === 'ready' && content !== null && (
-          <div className={css.codeArea}>
-            <div className={css.gutter} ref={gutterRef} aria-hidden="true">
-              <pre className={css.gutterNumbers}>{gutterNumbers}</pre>
-            </div>
-            <textarea
-              ref={areaRef}
-              className={css.code}
-              value={content}
-              readOnly
-              spellCheck={false}
-              onScroll={syncScroll}
-              onSelect={readSelection}
-              onKeyUp={readSelection}
-              onMouseUp={readSelection}
-            />
-          </div>
-        )}
-        {truncated && <div className={css.truncated}>{t('viewer.truncated')}</div>}
+        <div className={css.cmHost} ref={cmHostRef} data-hidden={phase !== 'ready' || activeDraft === undefined} />
+        {activeTruncated && <div className={css.truncated}>{t('viewer.truncated')}</div>}
       </div>
     </div>
   )

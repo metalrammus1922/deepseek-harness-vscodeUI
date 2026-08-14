@@ -17,6 +17,12 @@ export const fsReadRequestSchema = z.object({
   path: z.string(),
 }) satisfies z.ZodType<Wire<RequestPayload<'fs.read'>>>
 
+/** fs.write request payload. */
+export const fsWriteRequestSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+}) satisfies z.ZodType<Wire<RequestPayload<'fs.write'>>>
+
 /** One directory-level row. */
 export const fsEntrySchema = z.object({
   name: z.string(),
@@ -38,3 +44,8 @@ export const fsFileValueSchema = z.object({
   content: z.string(),
   truncated: z.boolean(),
 }) satisfies z.ZodType<Wire<ResponseValue<'fs.read'>>>
+
+/** fs.write response value. */
+export const fsWriteValueSchema = z.object({
+  path: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'fs.write'>>>

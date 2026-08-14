@@ -2597,6 +2597,8 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         }
         return ok(request, { path: target, content: 'fixture content of ' + target + '\n', truncated: false })
       },
+      // Deterministic write echo: the fixture accepts any fully-qualified path.
+      write: request => ok(request, { path: request.payload.path }),
     },
     workspace: {
       list: request => ok(request, {
@@ -3136,6 +3138,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'git.status': return this.api.git.status(request, signal)
       case 'fs.list': return this.api.fs.list(request, signal)
       case 'fs.read': return this.api.fs.read(request, signal)
+      case 'fs.write': return this.api.fs.write(request, signal)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

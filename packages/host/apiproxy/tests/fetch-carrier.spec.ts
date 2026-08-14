@@ -175,6 +175,9 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async read(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, content: '', truncated: false } } }
       },
+      async write(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
+      },
     },
     workspace: {
       async list(request) {

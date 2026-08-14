@@ -1,9 +1,10 @@
 /**
- * fs domain contract. Read-only directory listing for the browser's file
- * tree: files AND subdirectories in one level, name-sorted directories
- * first. Unlike the directory-picker browse capability (which lists only
- * enterable directories), this domain is the file explorer's data source.
- * No protocol version: client and host ship together.
+ * fs domain contract. Directory listing and text read for the browser's
+ * file tree and center viewer, plus text write for the viewer's save path.
+ * Listing returns files AND subdirectories in one level, name-sorted
+ * directories first. Unlike the directory-picker browse capability (which
+ * lists only enterable directories), this domain is the file explorer's
+ * data source. No protocol version: client and host ship together.
  */
 
 import type { RpcRequest, RpcResponse } from './rpc.ts'
@@ -40,6 +41,12 @@ export interface FsFile {
   truncated: boolean
 }
 
+/** fs.write response value: the written file's absolute path. */
+export interface FsWriteResult {
+  /** Absolute host path of the written file. */
+  path: string
+}
+
 /** Fs-domain unary methods. */
 export interface FsApi {
   /**
@@ -60,4 +67,14 @@ export interface FsApi {
     request: RpcRequest<{ path: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<FsFile>>
+  /**
+   * Write one file's text content (UTF-8), creating or replacing the target.
+   * A non-fully-qualified path, a non-regular-file target, or an unwritable
+   * target fails with `fs-write-unwritable`; content larger than the write
+   * bound is refused, not cut.
+   */
+  write(
+    request: RpcRequest<{ path: string; content: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<FsWriteResult>>
 }

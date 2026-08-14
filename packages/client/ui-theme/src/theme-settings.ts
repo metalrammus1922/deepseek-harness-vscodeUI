@@ -14,8 +14,10 @@ export const THEME_PREFERENCE_FIELD = 'preference'
 /** Theme preference persisted by the product Appearance row. */
 export type ThemePreference = typeof THEME_PREFERENCES[number]
 
-/** Default preference when the user-settings document has no override. */
-export const DEFAULT_PREFERENCE: ThemePreference = 'system'
+/** Default preference when the user-settings document has no override.
+ * The vscodeUI fork ships Visual Studio 2019 Dark by default; the Appearance
+ * row can still switch to light or system. */
+export const DEFAULT_PREFERENCE: ThemePreference = 'dark'
 
 /** Durable theme section shared by the Host schema and the browser scope. */
 export interface ThemeSettings {

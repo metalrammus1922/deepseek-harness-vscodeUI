@@ -170,6 +170,8 @@ export class FakeApiClient implements IApiClient {
   }>> = payload => Promise.resolve(ok({
     path: (payload as { path: string }).path, content: '', truncated: false,
   }))
+  onFsWrite: (payload: unknown) => Promise<RpcResponse<{ path: string }>> =
+    payload => Promise.resolve(ok({ path: (payload as { path: string }).path }))
 
   readonly git: IApiClient['git'] = {
     status: payload => this.record('git.status', payload, this.onGitStatus(payload)),
@@ -178,6 +180,7 @@ export class FakeApiClient implements IApiClient {
   readonly fs: IApiClient['fs'] = {
     list: payload => this.record('fs.list', payload, this.onFsList(payload)),
     read: payload => this.record('fs.read', payload, this.onFsRead(payload)),
+    write: payload => this.record('fs.write', payload, this.onFsWrite(payload)),
   }
 
   readonly workspace: IApiClient['workspace'] = {
