@@ -2,6 +2,8 @@
 
 English | [中文](README.zh.md)
 
+> **About this repository**: This is a modified fork of DeepSeek Harness (the vscodeui edition), customized under the supervision of Harness — a VSCode-style workbench: file tree / Git / sessions on the left, a multi-tab file viewer with add-selected-code-to-chat in the center, and the AI chat on the right. A tribute to the great Uncle Liang!
+
 DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
 
 It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).

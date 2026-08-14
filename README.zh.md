@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+> **本仓库说明**：这是基于 DeepSeek Harness 的魔改分支（vscodeui 版），在 Harness 的监督与协助下定制而成——VSCode 风格工作台：左侧文件树 / Git / 会话，中间文件查看器（多标签页、选行添加代码到对话），右侧 AI 聊天。致敬伟大的梁叔叔！
+
 DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
 
 它采用**一切皆插件**的架构，并由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper)。
