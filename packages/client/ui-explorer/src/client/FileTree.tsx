@@ -25,7 +25,7 @@ function basenameOf(path: string): string {
 
 export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProps) {
   const workspaceItems = useWorkspaces(s => s.items)
-  const sessionCwd = useSessions(s => {
+  const sessionCwd = useSessions((s) => {
     const current = s.current
     return current !== undefined ? s.byId[current]?.cwd : undefined
   })
@@ -44,7 +44,7 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
   /** List one level once (cache for panel lifetime); superseded refreshes ignore late results. */
   const listLevel = useCallback((path: string, signal?: AbortSignal) => {
     const gen = generation.current
-    setLoading(prev => {
+    setLoading((prev) => {
       const next = new Set(prev)
       next.add(path)
       return next
@@ -52,13 +52,18 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
     fsList(path, signal).then((listing) => {
       if (gen !== generation.current) return
       setChildren(prev => ({ ...prev, [path]: listing.entries }))
-      setErrors(prev => { const next = { ...prev }; delete next[path]; return next })
+      setErrors((prev) => {
+        const { [path]: _removed, ...next } = prev
+        return next
+      })
     }).catch((error: unknown) => {
       if (gen !== generation.current) return
       setErrors(prev => ({ ...prev, [path]: error instanceof Error ? error.message : String(error) }))
     }).finally(() => {
-      if (gen !== generation.current) return
-      setLoading(prev => {
+      // The loading marker is panel-local UI state: always clear it, even
+      // when a refresh superseded this listing — a stale marker would block
+      // a later re-expansion forever.
+      setLoading((prev) => {
         const next = new Set(prev)
         next.delete(path)
         return next
@@ -72,6 +77,10 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
     setChildren({})
     setExpanded(new Set())
     setErrors({})
+    // In-flight listings of the previous root must not leave stale loading
+    // markers behind: their results are dropped by the generation guard, so
+    // the marker set is reset wholesale.
+    setLoading(new Set())
     setSelected(null)
     if (root === undefined) return
     setRefreshing(true)
@@ -94,9 +103,22 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
     return () => controller.abort()
   }, [refresh])
 
+  // Expanded directories must not sit without children: after a refresh
+  // supersedes an in-flight listing (or an expansion raced a refresh), the
+  // missing level is re-listed here. A failed level is left alone — its
+  // error row is the terminal state and collapse+expand retries it.
+  useEffect(() => {
+    for (const path of expanded) {
+      if (children[path] === undefined && !loading.has(path) && errors[path] === undefined) {
+        listLevel(path)
+        return
+      }
+    }
+  }, [expanded, children, loading, errors, listLevel])
+
   /** Expand/collapse one directory; first expansion lists its children. */
   const toggle = useCallback((path: string) => {
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const next = new Set(prev)
       if (next.has(path)) next.delete(path)
       else next.add(path)
@@ -166,11 +188,15 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
       <div className={css.body}>
         {root === undefined
           ? <div className={css.empty}>{t('files.noWorkspace')}</div>
-          : rootRows === undefined
-            ? <div className={css.empty}>{t('files.loading')}</div>
-            : rootRows.length === 0
-              ? <div className={css.empty}>{t('files.empty')}</div>
-              : renderRows(rootRows, 0)}
+          : errors[''] !== undefined
+            // A failed root listing must not read as eternal loading: the
+            // error row is the terminal state until the next refresh.
+            ? <div className={css.rowError}>{errors['']}</div>
+            : rootRows === undefined
+              ? <div className={css.empty}>{t('files.loading')}</div>
+              : rootRows.length === 0
+                ? <div className={css.empty}>{t('files.empty')}</div>
+                : renderRows(rootRows, 0)}
       </div>
     </div>
   )

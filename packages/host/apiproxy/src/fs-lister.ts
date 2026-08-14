@@ -16,10 +16,13 @@ const MAX_ENTRIES = 5000
 /**
  * True when the path names one fixed filesystem location regardless of
  * process state (drive-qualified on Windows, POSIX-absolute elsewhere).
+ * Windows drive and separator runs accept both slashes; a literal
+ * backslash in a regex class is [\\] (a class [\/] is only a forward
+ * slash, which would reject every native Windows path).
  */
 export function fsFullyQualified(path: string, platform: NodeJS.Platform = process.platform): boolean {
   return platform === 'win32'
-    ? win32.isAbsolute(path) && /^(?:[A-Za-z]:[\/]|[\/]{2}[^\/]+[\/]+[^\/]+)/.test(path)
+    ? win32.isAbsolute(path) && /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/]+[\\/]+[^\\/]+)/.test(path)
     : posix.isAbsolute(path)
 }
 

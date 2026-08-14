@@ -49,9 +49,9 @@ type LayoutActions = {
  */
 export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
-    // The right (chat) panel starts open: it is the primary conversation
-    // surface (the details preference now owns the chat track).
-    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: DETAILS_DEFAULT, narrow: false, narrowExpanded: false }),
+    // The right details (tool-call inspector) panel starts closed; the chat
+    // fills the center workbench and the panel opens on demand.
+    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
