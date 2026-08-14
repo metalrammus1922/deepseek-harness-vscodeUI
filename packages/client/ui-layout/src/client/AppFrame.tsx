@@ -1,16 +1,15 @@
 /**
  * Three-column shell frame, registered into the built-in 'root' slot (the web
  * shell renders only 'root'). Owns the grid tracks (sidebar | center |
- * details), the drag handles (pointer capture + rAF throttle), the concession
- * chain (columns.ts), and the child-slot render decisions: the sidebar slot
- * renders HERE with live parameters from the concession solve, and the
- * session-aware occupants render in fixed column positions; strict entries
- * gate themselves on current-session availability while session-maybe
- * entries retain identity. Pure component: everything arrives
- * through the three framework shares — zero cordis or framework imports,
- * zero self-made hooks.
+ * right-chat), the drag handles (pointer capture + rAF throttle), the
+ * concession chain (columns.ts), and the child-slot render decisions: the
+ * sidebar slot renders HERE with live parameters from the concession solve,
+ * the file-viewer fills the center workbench, and the AI chat rides the
+ * right panel (session-maybe: it renders the no-session hero itself). Pure
+ * component: everything arrives through the three framework shares — zero
+ * cordis or framework imports, zero self-made hooks.
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
@@ -20,7 +19,7 @@ import css from './AppFrame.module.css'
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'file-viewer' | 'shell.overlay'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
 /** Center column grid item (session-body building block). */
@@ -86,26 +85,12 @@ function DragHandle(props: { side: 'sidebar' | 'details'; left: number; onStart:
 /** The three-column frame (see module doc). */
 export function AppFrame({
   useStore,
-  useSessions,
   actions,
   renderSlot,
 }: AppFrameProps) {
   const panels = useStore(s => s)
-  const detailsSession = useSessions((s) => {
-    const current = s.current
-    return current !== undefined && s.byId[current]?.blank === false ? current : undefined
-  })
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => window.innerWidth)
-
-  const lastSession = useRef(detailsSession)
-  useLayoutEffect(() => {
-    if (detailsSession === undefined) return
-    if (lastSession.current !== undefined && lastSession.current !== detailsSession) {
-      actions.closeDetails()
-    }
-    lastSession.current = detailsSession
-  }, [actions, detailsSession])
 
   // Track the frame's own box (not the window): rAF-throttled ResizeObserver.
   useEffect(() => {
@@ -139,11 +124,11 @@ export function AppFrame({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  // The right column is the details (tool-call inspector) panel; it only
-  // opens while a session is current, and its width follows the details
-  // preference. The conversation (chat) fills the center workbench and
-  // renders the no-session hero itself.
-  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  // The right column is the AI chat panel (the conversation slot renders
+  // the no-session hero itself); its width follows the details preference
+  // whether or not a session is current. The center workbench is the file
+  // viewer, opened by clicking a file in the sidebar explorer.
+  const cols = computeColumns(viewport, sidebarPreference, panels.details)
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -186,14 +171,14 @@ export function AppFrame({
         })}
       </div>
       <>
-        {/* VSCode-style arrangement: the conversation (chat) fills the center
-            workbench and the details slot (tool-call inspector) rides the
-            right panel, where its width is the resizable details track. The
-            conversation is session-maybe (it renders the no-session hero);
-            the strict details entry renders empty while no session is
-            current. */}
-        <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
-        <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
+        {/* VSCode-style arrangement: the file viewer fills the center
+            workbench (click a file in the sidebar explorer to open it) and
+            the AI chat rides the right panel, where its width is the
+            resizable details track. The conversation is session-maybe (it
+            renders the no-session hero); the file-viewer slot is root-scoped
+            and shows its own empty state without a selection. */}
+        <CenterColumn>{renderSlot('file-viewer', {})}</CenterColumn>
+        <DetailsColumn>{renderSlot('conversation', {})}</DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}

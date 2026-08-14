@@ -2588,6 +2588,15 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
           truncated: false,
         })
       },
+      // Deterministic read mirror: paths under the fixture root resolve to
+      // stable content; anything else fails like the real host would.
+      read: (request) => {
+        const target = request.payload.path
+        if (!target.startsWith(FIXTURE_HOME + '/')) {
+          return err(request, { code: 'file-unreadable', message: 'cannot read ' + target, details: { path: target } })
+        }
+        return ok(request, { path: target, content: 'fixture content of ' + target + '\n', truncated: false })
+      },
     },
     workspace: {
       list: request => ok(request, {
@@ -3126,6 +3135,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
       case 'git.status': return this.api.git.status(request, signal)
       case 'fs.list': return this.api.fs.list(request, signal)
+      case 'fs.read': return this.api.fs.read(request, signal)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

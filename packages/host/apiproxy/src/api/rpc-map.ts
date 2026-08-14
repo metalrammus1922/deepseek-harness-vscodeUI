@@ -47,6 +47,7 @@ export interface RpcMethodMap {
   'host.openPath': HostApi['openPath']
   'git.status': GitApi['status']
   'fs.list': FsApi['list']
+  'fs.read': FsApi['read']
   'workspace.list': WorkspaceApi['list']
   'workspace.create': WorkspaceApi['create']
   'workspace.rename': WorkspaceApi['rename']

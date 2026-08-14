@@ -183,15 +183,27 @@ export class FakeApiClient implements IApiClient {
   }
 
   onGitStatus: (payload: unknown) => Promise<RpcResponse<{
-    isRepo: boolean; root: string | null; branch: string | null;
-    entries: { path: string; x: string; y: string; staged: boolean; untracked: boolean; directory: boolean }[];
-    ahead: number; behind: number;
+    isRepo: boolean
+    root: string | null
+    branch: string | null
+    entries: { path: string; x: string; y: string; staged: boolean; untracked: boolean; directory: boolean }[]
+    ahead: number
+    behind: number
   }>> = () => Promise.resolve(ok({
     isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0,
   }))
   onFsList: (payload: unknown) => Promise<RpcResponse<{
-    path: string; entries: { name: string; path: string; isDirectory: boolean; hidden: boolean }[]; truncated: boolean;
+    path: string
+    entries: { name: string; path: string; isDirectory: boolean; hidden: boolean }[]
+    truncated: boolean
   }>> = () => Promise.resolve(ok({ path: '/home/fake', entries: [], truncated: false }))
+  onFsRead: (payload: unknown) => Promise<RpcResponse<{
+    path: string
+    content: string
+    truncated: boolean
+  }>> = payload => Promise.resolve(ok({
+    path: (payload as { path: string }).path, content: '', truncated: false,
+  }))
 
   readonly git: IApiClient['git'] = {
     status: (payload: unknown) => this.record('git.status', payload, this.onGitStatus(payload)),
@@ -199,6 +211,7 @@ export class FakeApiClient implements IApiClient {
 
   readonly fs: IApiClient['fs'] = {
     list: (payload: unknown) => this.record('fs.list', payload, this.onFsList(payload)),
+    read: (payload: unknown) => this.record('fs.read', payload, this.onFsRead(payload)),
   }
 
   // The archive-set field defaults at the binding below so list stubs keep

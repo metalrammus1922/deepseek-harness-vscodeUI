@@ -48,11 +48,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
-     * The whole center column, across both the no-session hero and a live
-     * conversation. OCCUPIED by ui-conversation's ConversationRoot, which
-     * declares the session body, composer, and input seats inside it —
-     * registering here replaces the entire conversation surface (and removes
-     * every seat it declares) rather than adding to it.
+     * The right AI chat column. OCCUPIED by ui-conversation's
+     * ConversationRoot, which declares the session body, composer, and input
+     * seats inside it — registering here replaces the entire conversation
+     * surface (and removes every seat it declares) rather than adding to it.
      *
      * Current-session-optional: the occupant owns both states without
      * changing its React identity, so it keeps its own state across a session
@@ -60,6 +59,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * framework hooks of the `session-maybe` scope.
      */
     'conversation': { kind: 'single'; scope: 'session-maybe'; owner: ConvOwnerProps }
+    /**
+     * The center workbench: the file viewer. OCCUPIED by ui-explorer's
+     * FileViewer, which shows the file the sidebar explorer opened. Root
+     * scope: opening and reading a file needs no session. It receives no
+     * owner props; the opened-file selection arrives through its declared
+     * store (shared with the file tree).
+     */
+    'file-viewer': { kind: 'single'; scope: 'root'; owner: FileViewerOwnerProps }
     /**
      * The right details column, shown when the layout opens it. OCCUPIED by
      * ui-conversation's DetailsPanel, which declares the tool-details seat
@@ -104,6 +111,9 @@ export interface ConvOwnerProps {}
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
 export interface DetailsOwnerProps {}
 
+/** File-viewer owner share: empty — the opened-file selection arrives through its declared store. */
+export interface FileViewerOwnerProps {}
+
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 export const inject = ['slots', 'theme']
 
@@ -123,6 +133,7 @@ export function apply(ctx: ClientContext): void {
         'sidebar': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
+        'file-viewer': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
       },
       // Exclusive store: the factory itself — the framework instantiates per

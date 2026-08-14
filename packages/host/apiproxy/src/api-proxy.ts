@@ -110,7 +110,7 @@ import {
 } from '@deepseek-ai/dsh-api-remotes'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
 import { gitStatus } from './git-runner.ts'
-import { listFsDirectory } from './fs-lister.ts'
+import { listFsDirectory, readFsFile } from './fs-lister.ts'
 
 /** Page size when history is called without maxMessages. */
 const DEFAULT_MAX_MESSAGES = 50
@@ -3048,6 +3048,25 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             message: 'cannot list ' + (request.payload.path ?? '(cwd)') + ': '
               + (error instanceof Error ? error.message : String(error)),
             details: { path: request.payload.path ?? process.cwd() },
+          })
+        }
+      },
+
+      // Read-only text read of one file for the browser file viewer. The
+      // bound lives in the lister; binary content decodes as UTF-8 with
+      // replacement characters.
+      async read(request, signal) {
+        try {
+          return ok(request, await readFsFile(request.payload.path))
+        } catch (error: unknown) {
+          if (signal.aborted) {
+            return err(request, { code: 'cancelled', message: 'fs read was aborted', details: {} })
+          }
+          return err(request, {
+            code: 'file-unreadable',
+            message: 'cannot read ' + request.payload.path + ': '
+              + (error instanceof Error ? error.message : String(error)),
+            details: { path: request.payload.path },
           })
         }
       },

@@ -53,7 +53,7 @@ export type {
 } from './sessions.ts'
 export type { DirectoryEntry, DirectoryListing, HostApi } from './host.ts'
 export type { GitApi, GitStatus, GitStatusEntry } from './git.ts'
-export type { FsApi, FsEntry, FsListing } from './fs.ts'
+export type { FsApi, FsEntry, FsFile, FsListing } from './fs.ts'
 export type {
   SubagentAddress, SubagentCatalog, SubagentInterruptReceipt, SubagentListEntry,
   SubagentPromptReceipt, SubagentsApi,

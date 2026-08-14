@@ -162,12 +162,18 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
     },
     git: {
       async status(request) {
-        return { rpcId: request.rpcId, result: { ok: true, value: { isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 } } }
+        return {
+          rpcId: request.rpcId,
+          result: { ok: true, value: { isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 } },
+        }
       },
     },
     fs: {
       async list(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path ?? '/', entries: [], truncated: false } } }
+      },
+      async read(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, content: '', truncated: false } } }
       },
     },
     workspace: {

@@ -6,12 +6,14 @@
  * @module @deepseek-ai/dsh-host-apiproxy
  */
 
-import { readdir } from 'node:fs/promises'
+import { open, readdir, stat } from 'node:fs/promises'
 import { join, posix, resolve, win32 } from 'node:path'
-import type { FsEntry, FsListing } from './api/fs.ts'
+import type { FsEntry, FsFile, FsListing } from './api/fs.ts'
 
 /** Complete-result bound of one listing level. */
 const MAX_ENTRIES = 5000
+/** Complete-result bound of one file read (one byte past the cut). */
+const MAX_FILE_BYTES = 1024 * 1024
 
 /**
  * True when the path names one fixed filesystem location regardless of
@@ -53,4 +55,31 @@ export async function listFsDirectory(path?: string): Promise<FsListing> {
   ))
   const truncated = entries.length > MAX_ENTRIES
   return { path: target, entries: truncated ? entries.slice(0, MAX_ENTRIES) : entries, truncated }
+}
+
+/**
+ * Read one file's text content (UTF-8), bounded. Directories, symlinks, and
+ * unreadable targets throw; a file larger than the bound is cut and flagged.
+ * @param path - absolute file path.
+ * @returns the content with the bounded/truncated facts.
+ */
+export async function readFsFile(path: string): Promise<FsFile> {
+  if (!fsFullyQualified(path)) {
+    throw new Error(`cannot read "${path}": not a fully qualified path`)
+  }
+  const target = resolve(path)
+  const info = await stat(target)
+  if (!info.isFile()) {
+    throw new Error(`cannot read "${target}": not a regular file`)
+  }
+  const handle = await open(target, 'r')
+  try {
+    const buffer = Buffer.alloc(MAX_FILE_BYTES + 1)
+    const { bytesRead } = await handle.read(buffer, 0, MAX_FILE_BYTES + 1, 0)
+    const truncated = bytesRead > MAX_FILE_BYTES
+    const content = buffer.subarray(0, Math.min(bytesRead, MAX_FILE_BYTES)).toString('utf8')
+    return { path: target, content, truncated }
+  } finally {
+    await handle.close()
+  }
 }

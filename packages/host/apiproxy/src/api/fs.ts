@@ -30,6 +30,16 @@ export interface FsListing {
   truncated: boolean
 }
 
+/** fs.read response value: one file's text content. */
+export interface FsFile {
+  /** Absolute host path of the read file. */
+  path: string
+  /** File content decoded as UTF-8 text (cut at the read bound). */
+  content: string
+  /** True when the content was cut at the complete-result bound. */
+  truncated: boolean
+}
+
 /** Fs-domain unary methods. */
 export interface FsApi {
   /**
@@ -41,4 +51,13 @@ export interface FsApi {
     request: RpcRequest<{ path?: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<FsListing>>
+  /**
+   * Read one file's text content (UTF-8). A missing or unreadable target, or
+   * a path that is not a regular file, fails with `fs-read-unreadable`;
+   * content larger than the read bound is cut and flagged `truncated`.
+   */
+  read(
+    request: RpcRequest<{ path: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<FsFile>>
 }

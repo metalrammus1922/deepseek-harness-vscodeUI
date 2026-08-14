@@ -1,0 +1,111 @@
+/* Center file viewer (VSCode-style workbench): a tab header with the opened
+   file's name and a close button over a scrolling text body. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-specific-sidebar-fill, var(--dsw-alias-surface-base, #1e1e1e));
+  color: var(--dsw-alias-label-primary, inherit);
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
+  font-size: 13px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: var(--dsw-alias-button-elevated-fill, rgba(128, 128, 128, 0.12));
+  color: var(--dsw-alias-label-primary, inherit);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tabName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.closeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.2));
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary, rgba(200, 200, 200, 0.7));
+  font-size: 12px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.empty,
+.loading,
+.error {
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary, rgba(200, 200, 200, 0.6));
+}
+
+.error {
+  color: var(--dsw-alias-text-danger, #e5534b);
+  white-space: normal;
+  word-break: break-all;
+}
+
+.code {
+  margin: 0;
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+  color: var(--dsw-alias-label-primary, inherit);
+}
+
+.truncated {
+  padding: 6px 0 12px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-warning, #d29922);
+}

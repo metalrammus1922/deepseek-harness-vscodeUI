@@ -18,7 +18,7 @@ import {
   hostListDirectoryValueSchema, hostOpenPathValueSchema, hostPickDirectoryValueSchema,
 } from '../api/host.schema.ts'
 import { gitStatusValueSchema } from '../api/git.schema.ts'
-import { fsListValueSchema } from '../api/fs.schema.ts'
+import { fsFileValueSchema, fsListValueSchema } from '../api/fs.schema.ts'
 import {
   sessionCancelValueSchema,
   sessionAttachmentValueSchema,
@@ -119,6 +119,7 @@ export interface IApiClient {
   }
   fs: {
     list(payload: RequestPayload<'fs.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'fs.list'>>>
+    read(payload: RequestPayload<'fs.read'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'fs.read'>>>
   }
   workspace: {
     list(payload: RequestPayload<'workspace.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'workspace.list'>>>
@@ -201,6 +202,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'host.openPath': hostOpenPathValueSchema,
   'git.status': gitStatusValueSchema,
   'fs.list': fsListValueSchema,
+  'fs.read': fsFileValueSchema,
   'workspace.list': workspaceListValueSchema,
   'workspace.create': workspaceCreateValueSchema,
   'workspace.rename': workspaceRenameValueSchema,
@@ -459,6 +461,7 @@ export abstract class AbstractApiClient implements IApiClient {
 
   readonly fs: IApiClient['fs'] = {
     list: (payload, signal) => this.callUnary('fs.list', payload, signal),
+    read: (payload, signal) => this.callUnary('fs.read', payload, signal),
   }
 
   readonly workspace: IApiClient['workspace'] = {

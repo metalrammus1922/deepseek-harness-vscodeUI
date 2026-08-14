@@ -85,6 +85,7 @@ function scriptedApi(overrides: {
     },
     fs: {
       list: r => ok(r, { path: r.payload.path ?? '/', entries: [], truncated: false }),
+      read: r => ok(r, { path: r.payload.path, content: '', truncated: false }),
     },
     workspace: {
       list: r => ok(r, { items: [], archivedSessionIds: [] }),

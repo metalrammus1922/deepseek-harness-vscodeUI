@@ -3,7 +3,8 @@
  * ctx.fs.list. The root is the current session's workspace directory, falling
  * back to the first registered workspace. Expanding a directory fetches its
  * children once and caches them for the panel's lifetime; collapsing keeps
- * the cache. Rows are read-only navigation in v1 — no file action yet.
+ * the cache. Clicking a file opens it in the center viewer through the
+ * shared explorer store.
  */
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -23,7 +24,7 @@ function basenameOf(path: string): string {
   return path.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? path
 }
 
-export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProps) {
+export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: FileTreeProps) {
   const workspaceItems = useWorkspaces(s => s.items)
   const sessionCwd = useSessions((s) => {
     const current = s.current
@@ -146,8 +147,12 @@ export function FileTree({ useWorkspaces, useSessions, fsList, t }: FileTreeProp
             aria-expanded={isDirectory ? isOpen : undefined}
             aria-selected={selected === entry.path}
             onClick={() => {
-              if (isDirectory) toggle(entry.path)
-              else setSelected(entry.path)
+              if (isDirectory) {
+                toggle(entry.path)
+              } else {
+                setSelected(entry.path)
+                actions.openFile({ path: entry.path, name: entry.name })
+              }
             }}
           >
             <span className={css.chevronSeat}>
