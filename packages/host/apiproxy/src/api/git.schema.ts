@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import type { GitStatusEntry } from './git.ts'
+import type { GitScannedRepo, GitStatusEntry } from './git.ts'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 
@@ -32,3 +32,23 @@ export const gitStatusValueSchema = z.object({
   behind: z.number().int().nonnegative(),
   error: z.string().optional(),
 }) satisfies z.ZodType<Wire<ResponseValue<'git.status'>>>
+
+/** git.scan request payload; an absent root uses the host process working directory. */
+export const gitScanRequestSchema = z.object({
+  root: z.string().optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'git.scan'>>>
+
+/** One repository row of a git.scan response. */
+export const gitScannedRepoSchema = z.object({
+  path: z.string(),
+  name: z.string(),
+  branch: z.string().nullable(),
+  files: z.array(gitStatusEntrySchema),
+}) satisfies z.ZodType<Wire<GitScannedRepo>>
+
+/** git.scan response value. */
+export const gitScanValueSchema = z.object({
+  root: z.string(),
+  repos: z.array(gitScannedRepoSchema),
+  truncated: z.boolean(),
+}) satisfies z.ZodType<Wire<ResponseValue<'git.scan'>>>

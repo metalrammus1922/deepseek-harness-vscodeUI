@@ -82,6 +82,7 @@ function scriptedApi(overrides: {
     },
     git: {
       status: r => ok(r, { isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 }),
+      scan: r => ok(r, { root: r.payload.root ?? '/', repos: [], truncated: false }),
     },
     fs: {
       list: r => ok(r, { path: r.payload.path ?? '/', entries: [], truncated: false }),

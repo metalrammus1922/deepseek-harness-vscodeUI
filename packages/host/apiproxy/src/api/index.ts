@@ -52,7 +52,7 @@ export type {
   SessionListMetadata, SessionProjectionsBlock, SessionSearchItem, SessionsApi, SessionSummary,
 } from './sessions.ts'
 export type { DirectoryEntry, DirectoryListing, HostApi } from './host.ts'
-export type { GitApi, GitStatus, GitStatusEntry } from './git.ts'
+export type { GitApi, GitScan, GitScannedRepo, GitStatus, GitStatusEntry } from './git.ts'
 export type { FsApi, FsEntry, FsFile, FsListing, FsWriteResult } from './fs.ts'
 export type {
   SubagentAddress, SubagentCatalog, SubagentInterruptReceipt, SubagentListEntry,

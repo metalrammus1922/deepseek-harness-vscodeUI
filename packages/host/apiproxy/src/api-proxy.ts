@@ -109,7 +109,7 @@ import {
   inspectApiRemoteSession,
 } from '@deepseek-ai/dsh-api-remotes'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
-import { gitStatus } from './git-runner.ts'
+import { gitStatus, scanGitRepos } from './git-runner.ts'
 import { listFsDirectory, readFsFile, writeFsFile } from './fs-lister.ts'
 
 /** Page size when history is called without maxMessages. */
@@ -3027,6 +3027,24 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, {
             code: 'internal',
             message: 'git status failed: ' + (error instanceof Error ? error.message : String(error)),
+            details: {},
+          })
+        }
+      },
+
+      // Multi-repository scan: walk the tree for every repository under the
+      // root, each with its uncommitted files (one level flat, read-only).
+      async scan(request, signal) {
+        try {
+          const root = request.payload.root ?? process.cwd()
+          return ok(request, await scanGitRepos(root, signal))
+        } catch (error: unknown) {
+          if (signal.aborted) {
+            return err(request, { code: 'cancelled', message: 'git scan was aborted', details: {} })
+          }
+          return err(request, {
+            code: 'internal',
+            message: 'git scan failed: ' + (error instanceof Error ? error.message : String(error)),
             details: {},
           })
         }

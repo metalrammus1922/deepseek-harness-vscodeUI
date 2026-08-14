@@ -7,7 +7,9 @@
  */
 
 import { execFile } from 'node:child_process'
-import type { GitStatus, GitStatusEntry } from './api/git.ts'
+import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import type { GitScannedRepo, GitStatus, GitStatusEntry } from './api/git.ts'
 
 /** One finished git invocation. */
 export interface GitCommandResult {
@@ -135,4 +137,67 @@ export async function gitStatus(cwd: string, signal?: AbortSignal): Promise<GitS
     if (!Number.isFinite(behind)) behind = 0
   }
   return { isRepo: true, root, branch, entries: parsePorcelain(statusRes.stdout), ahead, behind }
+}
+
+/**
+ * Walk one directory tree and report every git repository under it (one
+ * level flat: a repository top level is reported and never descended into, so
+ * nested submodules and worktrees surface as separate flat rows). Noise
+ * directories are skipped and the walk is depth- and count-bounded.
+ * @param root - absolute directory to scan; an absent value scans the cwd.
+ * @param signal - caller lifetime; aborting kills any in-flight git child.
+ * @returns the discovered repositories (each with its uncommitted files).
+ */
+export async function scanGitRepos(
+  root: string,
+  signal?: AbortSignal,
+): Promise<{ root: string; repos: GitScannedRepo[]; truncated: boolean }> {
+  const repos: GitScannedRepo[] = []
+  const MAX_DEPTH = 8
+  const MAX_REPOS = 500
+  // Build/output/third-party directories that never contain a project's own
+  // repository (their .git would be a nested submodule reported elsewhere).
+  const SKIP = new Set(['node_modules', 'bin', 'obj', '.vs', '.vscode', '.idea',
+    'dist', 'out', 'build', '__pycache__', '.venv', 'venv', '.git'])
+
+  /** One repository's branch + uncommitted rows (two git calls). */
+  const repoStatus = async (dir: string): Promise<GitScannedRepo | null> => {
+    const [branchRes, statusRes] = await Promise.all([
+      runGit(dir, ['rev-parse', '--abbrev-ref', 'HEAD'], signal),
+      runGit(dir, ['status', '--porcelain=v1', '-z'], signal),
+    ])
+    // A porcelain status always exits 0; anything else means git is missing
+    // or the directory stopped being a work tree — skip it.
+    if (statusRes.code !== 0) return null
+    let branch = branchRes.code === 0 ? branchRes.stdout.trim() : null
+    if (branch === 'HEAD' || branch === '') branch = null
+    return {
+      path: dir,
+      name: dir.split(/[\\/]/).filter(Boolean).pop() ?? dir,
+      branch,
+      files: parsePorcelain(statusRes.stdout),
+    }
+  }
+
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (repos.length >= MAX_REPOS || depth > MAX_DEPTH) return
+    let dirents
+    try {
+      dirents = await readdir(dir, { withFileTypes: true })
+    } catch {
+      return // unreadable directory: nothing to report, keep walking siblings
+    }
+    if (dirents.some(e => e.name === '.git')) {
+      const repo = await repoStatus(dir)
+      if (repo !== null) repos.push(repo)
+      return // flat: never descend into a repository
+    }
+    for (const dirent of dirents) {
+      if (!dirent.isDirectory() || SKIP.has(dirent.name)) continue
+      await walk(join(dir, dirent.name), depth + 1)
+    }
+  }
+
+  await walk(root, 0)
+  return { root, repos, truncated: repos.length >= MAX_REPOS }
 }

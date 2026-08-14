@@ -158,6 +158,18 @@ export class FakeApiClient implements IApiClient {
   }>> = () => Promise.resolve(ok({
     isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0,
   }))
+  onGitScan: (payload: unknown) => Promise<RpcResponse<{
+    root: string
+    repos: {
+      path: string
+      name: string
+      branch: string | null
+      files: { path: string; x: string; y: string; staged: boolean; untracked: boolean; directory: boolean }[]
+    }[]
+    truncated: boolean
+  }>> = payload => Promise.resolve(ok({
+    root: (payload as { root?: string }).root ?? '/home/fake', repos: [], truncated: false,
+  }))
   onFsList: (payload: unknown) => Promise<RpcResponse<{
     path: string
     entries: { name: string; path: string; isDirectory: boolean; hidden: boolean }[]
@@ -175,6 +187,7 @@ export class FakeApiClient implements IApiClient {
 
   readonly git: IApiClient['git'] = {
     status: payload => this.record('git.status', payload, this.onGitStatus(payload)),
+    scan: payload => this.record('git.scan', payload, this.onGitScan(payload)),
   }
 
   readonly fs: IApiClient['fs'] = {

@@ -34,7 +34,7 @@ import {
   hostListDirectoryRequestSchema, hostOpenPathRequestSchema,
   hostPickDirectoryRequestSchema,
 } from '../api/host.schema.ts'
-import { gitStatusRequestSchema } from '../api/git.schema.ts'
+import { gitScanRequestSchema, gitStatusRequestSchema } from '../api/git.schema.ts'
 import { fsListRequestSchema, fsReadRequestSchema, fsWriteRequestSchema } from '../api/fs.schema.ts'
 import {
   workspaceArchiveSessionRequestSchema,
@@ -112,6 +112,7 @@ const UNARY_ROUTES: UnaryRoutes = {
   'host.createDirectory': { schema: hostCreateDirectoryRequestSchema, invoke: (api, r) => api.host.createDirectory(r) },
   'host.openPath': { schema: hostOpenPathRequestSchema, invoke: (api, r, signal) => api.host.openPath(r, signal) },
   'git.status': { schema: gitStatusRequestSchema, invoke: (api, r, signal) => api.git.status(r, signal) },
+  'git.scan': { schema: gitScanRequestSchema, invoke: (api, r, signal) => api.git.scan(r, signal) },
   'fs.list': { schema: fsListRequestSchema, invoke: (api, r, signal) => api.fs.list(r, signal) },
   'fs.read': { schema: fsReadRequestSchema, invoke: (api, r, signal) => api.fs.read(r, signal) },
   'fs.write': { schema: fsWriteRequestSchema, invoke: (api, r, signal) => api.fs.write(r, signal) },

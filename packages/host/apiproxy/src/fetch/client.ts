@@ -17,7 +17,7 @@ import {
   hostCreateDirectoryValueSchema, hostDescribeValueSchema,
   hostListDirectoryValueSchema, hostOpenPathValueSchema, hostPickDirectoryValueSchema,
 } from '../api/host.schema.ts'
-import { gitStatusValueSchema } from '../api/git.schema.ts'
+import { gitScanValueSchema, gitStatusValueSchema } from '../api/git.schema.ts'
 import { fsFileValueSchema, fsListValueSchema, fsWriteValueSchema } from '../api/fs.schema.ts'
 import {
   sessionCancelValueSchema,
@@ -116,6 +116,7 @@ export interface IApiClient {
   }
   git: {
     status(payload: RequestPayload<'git.status'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.status'>>>
+    scan(payload: RequestPayload<'git.scan'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.scan'>>>
   }
   fs: {
     list(payload: RequestPayload<'fs.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'fs.list'>>>
@@ -202,6 +203,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'host.createDirectory': hostCreateDirectoryValueSchema,
   'host.openPath': hostOpenPathValueSchema,
   'git.status': gitStatusValueSchema,
+  'git.scan': gitScanValueSchema,
   'fs.list': fsListValueSchema,
   'fs.read': fsFileValueSchema,
   'fs.write': fsWriteValueSchema,
@@ -459,6 +461,7 @@ export abstract class AbstractApiClient implements IApiClient {
 
   readonly git: IApiClient['git'] = {
     status: (payload, signal) => this.callUnary('git.status', payload, signal),
+    scan: (payload, signal) => this.callUnary('git.scan', payload, signal),
   }
 
   readonly fs: IApiClient['fs'] = {

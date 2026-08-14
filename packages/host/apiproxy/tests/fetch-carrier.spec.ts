@@ -167,6 +167,12 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
           result: { ok: true, value: { isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 } },
         }
       },
+      async scan(request) {
+        return {
+          rpcId: request.rpcId,
+          result: { ok: true, value: { root: request.payload.root ?? '/', repos: [], truncated: false } },
+        }
+      },
     },
     fs: {
       async list(request) {

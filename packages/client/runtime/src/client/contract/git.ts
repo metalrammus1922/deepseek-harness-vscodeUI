@@ -4,7 +4,7 @@
  * The concrete class owns the wire calls; widening this interface is the
  * explicit act of widening what features may do to the git domain.
  */
-import type { GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
+import type { GitScan, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
 
 /** The git-service face injected as `ctx.git`. */
 export interface IGit {
@@ -16,4 +16,12 @@ export interface IGit {
    * @returns repo facts and changed paths; isRepo: false outside a work tree.
    */
   status(cwd?: string, signal?: AbortSignal): Promise<GitStatus>
+  /**
+   * Walk one directory tree and report every git repository under it, one
+   * level flat, each with its uncommitted files and their count. Read-only.
+   * @param root - absolute directory to scan; absent scans the host cwd.
+   * @param signal - aborts the wire request.
+   * @returns the discovered repositories (name/branch/uncommitted files).
+   */
+  scan(root?: string, signal?: AbortSignal): Promise<GitScan>
 }

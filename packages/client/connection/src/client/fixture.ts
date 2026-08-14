@@ -2573,6 +2573,17 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         ahead: 0,
         behind: 0,
       }),
+      // Deterministic scan: FIXTURE_HOME is the one repository under the root.
+      scan: request => ok(request, {
+        root: request.payload.root ?? FIXTURE_HOME,
+        repos: [{
+          path: FIXTURE_HOME,
+          name: 'fixture',
+          branch: 'main',
+          files: [],
+        }],
+        truncated: false,
+      }),
     },
     fs: {
       list: (request) => {
@@ -3136,6 +3147,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.createDirectory': return this.api.host.createDirectory(request)
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
       case 'git.status': return this.api.git.status(request, signal)
+      case 'git.scan': return this.api.git.scan(request, signal)
       case 'fs.list': return this.api.fs.list(request, signal)
       case 'fs.read': return this.api.fs.read(request, signal)
       case 'fs.write': return this.api.fs.write(request, signal)

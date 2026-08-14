@@ -16,7 +16,8 @@ import type { ClientConnectionRpc } from '../rpc.ts'
 export type {
   ApiProxy, SessionsApi, SessionSearchItem, SessionSummary, PromptContentPart, HostApi, EventsApi, MuxFrame, HostFrame,
   ApprovalResponsePayload, QuestionResponsePayload, HistoryEntry, ToolEventView,
-  DirectoryEntry, DirectoryListing, FsApi, FsEntry, FsFile, FsListing, FsWriteResult, GitApi, GitStatus, GitStatusEntry,
+  DirectoryEntry, DirectoryListing, FsApi, FsEntry, FsFile, FsListing, FsWriteResult,
+  GitApi, GitScan, GitScannedRepo, GitStatus, GitStatusEntry,
   ToolCallView, ToolResultView, WorkspaceApi, WorkspaceId, WorkspaceView,
   SkillsApi, SkillEntry,
   ModelCatalogFailure, ModelCatalogModel, ModelProviderGroup, ModelReasoning,

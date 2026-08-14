@@ -41,6 +41,28 @@ export interface GitStatus {
   error?: string
 }
 
+/** One discovered git repository: its top level plus uncommitted files. */
+export interface GitScannedRepo {
+  /** Absolute path of the repository top level (the directory containing `.git`). */
+  path: string
+  /** Display name (basename of the repository top level). */
+  name: string
+  /** Current branch name, or null on a detached HEAD. */
+  branch: string | null
+  /** Uncommitted rows (staged + unstaged + untracked), porcelain order. */
+  files: GitStatusEntry[]
+}
+
+/** git.scan response value: repositories found under the scanned root. */
+export interface GitScan {
+  /** Absolute path that was scanned. */
+  root: string
+  /** Discovered repositories, one level flat (never nested inside another repo). */
+  repos: GitScannedRepo[]
+  /** True when the scan hit its repository-count bound. */
+  truncated: boolean
+}
+
 /** Git-domain unary methods. */
 export interface GitApi {
   /**
@@ -53,4 +75,15 @@ export interface GitApi {
     request: RpcRequest<{ cwd?: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<GitStatus>>
+  /**
+   * Walk one directory tree and report every git repository found under it
+   * (one level flat: a repository is never descended into), each with its
+   * uncommitted files and their count. Read-only; noise directories
+   * (node_modules/bin/obj/…) are skipped and the walk is depth- and
+   * count-bounded.
+   */
+  scan(
+    request: RpcRequest<{ root?: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<GitScan>>
 }

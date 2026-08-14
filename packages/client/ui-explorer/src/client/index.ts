@@ -59,6 +59,7 @@ export function apply(ctx: ClientContext): void {
     fsRead: (path, signal) => ctx.fs.read(path, signal),
     fsWrite: (path, content, signal) => ctx.fs.write(path, content, signal),
     gitStatus: (cwd, signal) => ctx.git.status(cwd, signal),
+    gitScan: (root, signal) => ctx.git.scan(root, signal),
     // The conversation layer owns the composer target: this plugin only
     // announces the intent (and the active file for preferred context).
     addToChat: text => ctx.emit('explorer/add-to-chat', { text }),

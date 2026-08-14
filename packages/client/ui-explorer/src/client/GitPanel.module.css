@@ -170,3 +170,84 @@
   white-space: normal;
   word-break: break-all;
 }
+
+.title {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scanTotal {
+  font-size: 11px;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  flex: none;
+}
+
+.repoRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0 10px;
+  line-height: 26px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.repoRow:hover {
+  background: var(--dsw-alias-surface-hover, rgba(128, 128, 128, 0.1));
+}
+
+.chevron {
+  flex: none;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, rgba(128, 128, 128, 0.8));
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.repoIcon {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, inherit);
+}
+
+.repoName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.repoBranch {
+  flex: none;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--dsw-alias-text-tertiary, rgba(128, 128, 128, 0.8));
+  background: var(--dsw-alias-surface-hover, rgba(128, 128, 128, 0.12));
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.repoFiles {
+  padding-bottom: 4px;
+}
+
+.repoFiles .placeholder {
+  padding-left: 28px;
+}

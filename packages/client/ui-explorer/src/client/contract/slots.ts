@@ -13,7 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls ui-layout's SlotMap merge ('file-viewer') into every program
 // that sees this contract, so PropsRuntime<'file-viewer'> resolves.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { FsFile, FsListing, FsWriteResult, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
+import type { FsFile, FsListing, FsWriteResult, GitScan, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ExplorerKey } from '../locales.ts'
 import type { createExplorerStore } from '../store.ts'
 
@@ -27,6 +27,8 @@ export interface ExplorerInjected {
   fsWrite(path: string, content: string, signal?: AbortSignal): Promise<FsWriteResult>
   /** One-shot git status snapshot for a directory. */
   gitStatus(cwd: string, signal?: AbortSignal): Promise<GitStatus>
+  /** Walk a directory tree and report every git repository under it (flat), each with its uncommitted files. */
+  gitScan(root: string, signal?: AbortSignal): Promise<GitScan>
   /** Append a code selection reference to the AI chat composer (no-op without a session). */
   addToChat(text: string): void
   /** Report the viewer's active tab so the chat treats it as preferred context. */

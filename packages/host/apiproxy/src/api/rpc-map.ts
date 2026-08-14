@@ -46,6 +46,7 @@ export interface RpcMethodMap {
   'host.createDirectory': HostApi['createDirectory']
   'host.openPath': HostApi['openPath']
   'git.status': GitApi['status']
+  'git.scan': GitApi['scan']
   'fs.list': FsApi['list']
   'fs.read': FsApi['read']
   'fs.write': FsApi['write']

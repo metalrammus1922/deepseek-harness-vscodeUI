@@ -1,7 +1,7 @@
 /** GitRuntime projects the Host git domain for UI consumers (read-only status). */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { IApiClient, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
+import type { IApiClient, GitScan, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
 import type { IGit } from '../contract/git.ts'
 
 /** Structured failure so the source-control surface can surface Host business errors. */
@@ -24,6 +24,12 @@ export class GitRuntime implements IGit {
 
   async status(cwd?: string, signal?: AbortSignal): Promise<GitStatus> {
     const response = await this.api.git.status(cwd === undefined ? {} : { cwd }, signal)
+    if (!response.result.ok) throw new GitError(response.result.error)
+    return response.result.value
+  }
+
+  async scan(root?: string, signal?: AbortSignal): Promise<GitScan> {
+    const response = await this.api.git.scan(root === undefined ? {} : { root }, signal)
     if (!response.result.ok) throw new GitError(response.result.error)
     return response.result.value
   }

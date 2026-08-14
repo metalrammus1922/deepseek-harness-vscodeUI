@@ -9,9 +9,18 @@
 /* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
 
 import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
+import { DSH_HOME_DIR_NAME } from '@deepseek-ai/dsh-home-paths'
 import { parseDshArgs } from './args.ts'
+
+// The vscodeUI fork always serves on its own data root. A shell that
+// exported DSH_HOME (e.g. the stock install's ~/.dsh) must not leak
+// sessions, settings, or workspaces into this fork — pin the environment
+// before any profile boot resolves the harness home.
+process.env.DSH_HOME = join(homedir(), DSH_HOME_DIR_NAME)
 
 // Both the source tree (apps/cli/src) and the bundled bin (apps/cli/lib) sit
 // one directory under apps/cli, so the checked-in manifest resolves with the

@@ -28,6 +28,7 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
   const fsRead = vi.fn(async (path: string) => ({ path, content: 'line one\nline two\n', truncated: false }))
   const fsWrite = vi.fn(async (path: string) => ({ path }))
   const gitStatus = vi.fn(async () => ({ isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 }))
+  const gitScan = vi.fn(async (root: string) => ({ root, repos: [], truncated: false }))
   const props: FileViewerProps = {
     useStore: bindSnapshotSelector(store),
     useSessions: hook({} as never) as never,
@@ -37,6 +38,7 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
     fsRead,
     fsWrite,
     gitStatus,
+    gitScan,
     addToChat: vi.fn(),
     onActiveFile: vi.fn(),
     t,
