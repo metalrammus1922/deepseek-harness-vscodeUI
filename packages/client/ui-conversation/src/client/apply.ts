@@ -307,6 +307,7 @@ export function apply(ctx: Context): void {
           addFileRef: () => {},
           removeFileRef: () => {},
           setActiveFilePinned: () => {},
+          openFileRef: () => {},
           hooks: {
             notices: ABSENT_NOTICES,
             lexicon: ABSENT_LEXICON,
@@ -375,6 +376,9 @@ export function apply(ctx: Context): void {
         addFileRef: ref => conversation.addFileRef(ref),
         removeFileRef: ref => conversation.removeFileRef(ref),
         setActiveFilePinned: pinned => conversation.setActiveFilePinned(pinned),
+        // The explorer owns the viewer store: the composer only announces the
+        // intent, exactly like the viewer's add-to-chat bridge.
+        openFileRef: path => ctx.emit('explorer/open-file-request', { path }),
       }
     },
   }, InputBar)

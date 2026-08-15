@@ -44,6 +44,7 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
     gitScan,
     addFileRef: vi.fn(),
     onActiveFile: vi.fn(),
+    usePendingOpen: hook(null) as unknown as FileViewerProps['usePendingOpen'],
     t,
     ...overrides,
   }

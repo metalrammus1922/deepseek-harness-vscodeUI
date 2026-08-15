@@ -92,8 +92,10 @@ interface BenchOptions {
   toggleCommandMenu?: (selection: { start: number; end: number }) => void
   /** File-reference chips fed to the bar (default none). */
   fileRefs?: readonly FileRef[]
+  addFileRef?: (ref: FileRef) => void
   setActiveFilePinned?: (pinned: boolean) => void
   removeFileRef?: (ref: { path: string; lines: FileRef['lines'] }) => void
+  openFileRef?: (path: string) => void
 }
 
 /** One pending queue row (the runtime snapshot shape, as the dock tests build it). */
@@ -181,9 +183,10 @@ function bench(over?: BenchOptions) {
     useLexicon: bindSnapshotSelector(shell.lexicon),
     useMenuLauncher: bindSnapshotSelector(menuLauncher),
     useActiveFile: bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>(over?.fileRefs ?? [])),
-    addFileRef: vi.fn(),
+    addFileRef: over?.addFileRef ?? vi.fn(),
     removeFileRef: over?.removeFileRef ?? vi.fn(),
     setActiveFilePinned: over?.setActiveFilePinned ?? vi.fn(),
+    openFileRef: over?.openFileRef ?? vi.fn(),
     stop,
     command: over?.command ?? (() => Promise.resolve(true)),
     // Mirrors the real lookup chain (conversation namespace, then common).
@@ -1359,5 +1362,38 @@ describe('command launcher chrome and control seats', () => {
     })
     fireEvent.click(view.getByRole('button', { name: '取消固定，跟随当前文件' }))
     expect(setActiveFilePinned).toHaveBeenCalledWith(false)
+  })
+
+  it('opens the referenced file when a chip body is clicked, not its buttons', () => {
+    const openFileRef = vi.fn()
+    const setActiveFilePinned = vi.fn()
+    const { view } = bench({
+      fileRefs: [
+        { path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true },
+        { path: '/w/b.ts', name: 'b.ts', lines: null },
+      ],
+      openFileRef,
+      setActiveFilePinned,
+    })
+    fireEvent.click(view.getByText('b.ts'))
+    expect(openFileRef).toHaveBeenCalledWith('/w/b.ts')
+    // The pin and close buttons must not leak their click into the chip open.
+    fireEvent.click(view.getByRole('button', { name: '固定当前文件，切换标签时保留' }))
+    fireEvent.click(view.getByRole('button', { name: '移除引用' }))
+    expect(openFileRef).toHaveBeenCalledTimes(1)
+    expect(setActiveFilePinned).toHaveBeenCalledWith(true)
+  })
+
+  it('drops a file dragged from the explorer tree as a reference chip', () => {
+    const addFileRef = vi.fn()
+    const { view } = bench({ addFileRef })
+    // jsdom has no DataTransfer; the handler only reads types + getData.
+    const dt = {
+      types: ['application/x-dsh-file', 'text/plain'],
+      getData: (type: string) => type === 'application/x-dsh-file' || type === 'text/plain' ? '/w/dropped.ts' : '',
+    } as unknown as DataTransfer
+    fireEvent.drop(document, { dataTransfer: dt })
+    expect(addFileRef).toHaveBeenCalledWith({ path: '/w/dropped.ts', name: 'dropped.ts', lines: null })
+    void view
   })
 })

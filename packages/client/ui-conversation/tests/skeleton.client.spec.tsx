@@ -212,6 +212,7 @@ function mount(
           addFileRef={vi.fn()}
           removeFileRef={vi.fn()}
           setActiveFilePinned={vi.fn()}
+          openFileRef={vi.fn()}
           stop={stop}
           command={() => Promise.resolve(true)}
           t={t}

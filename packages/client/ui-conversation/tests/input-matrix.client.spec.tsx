@@ -63,6 +63,7 @@ function mountBar(shell: SessionInputShell, over?: { running?: boolean; disabled
     addFileRef: vi.fn(),
     removeFileRef: vi.fn(),
     setActiveFilePinned: vi.fn(),
+    openFileRef: vi.fn(),
     renderSlot: (() => null) as InputBarProps['renderSlot'],
     stop: vi.fn(),
     command: () => Promise.resolve(true),

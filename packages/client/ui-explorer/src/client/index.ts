@@ -8,6 +8,7 @@
  * workspace (falling back to the first registered workspace), so the panels
  * always point at the project the user is working in.
  */
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the generated Remote API and ctx.remote merge through the Client assembly boundary.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -64,12 +65,26 @@ export function apply(ctx: ClientContext): void {
     // announces the reference (and the active file for preferred context).
     addFileRef: ref => ctx.emit('explorer/add-file-ref', ref),
     onActiveFile: file => ctx.emit('explorer/active-file', file),
+    hooks: { pendingOpen },
   })
 
   // One handle shared across the two registrations (the sanctioned
   // cross-registration store share): the tree writes the selection, the
   // viewer reads it.
   const explorerStore = createExplorerStore()
+
+  // A composer chip click opens the referenced file in the center viewer.
+  // The store instance is framework-owned, so the request rides a
+  // registrant-private observable (the hooks compartment) that the file
+  // tree reads and turns into an openFile action.
+  const pendingOpen = createSnapshotStore<{ path: string; seq: number } | null>(null)
+  ctx.effect(() => {
+    const offOpen = ctx.on('explorer/open-file-request', ({ path }) => {
+      const previous = pendingOpen.getSnapshot()
+      pendingOpen.set({ path, seq: (previous?.seq ?? 0) + 1 })
+    })
+    return offOpen
+  }, 'ui-explorer: composer chip open')
 
   ctx.slots.inject('sidebar.explorer.files', () => ctx.slots.register({
     name: 'sidebar.explorer.files',

@@ -190,6 +190,13 @@ declare module '@deepseek-ai/cordis' {
      * or null when every tab is closed.
      */
     'explorer/active-file'(payload: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
+    /**
+     * A composer chip was clicked: the explorer should open the referenced
+     * file in the center viewer.
+     * @mode emit
+     * @param payload - the referenced file path.
+     */
+    'explorer/open-file-request'(payload: { path: string }): void
   }
   interface Context {
     slots: import('./slots.ts').SlotRegistry

@@ -65,7 +65,7 @@ export function InputBar({
   useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
   resolveSubmitMode, toggleCommandMenu, stop, command, t,
   renderSlot, useNotices, useLexicon, useMenuLauncher, useActiveFile,
-  addFileRef, removeFileRef, setActiveFilePinned,
+  addFileRef, removeFileRef, setActiveFilePinned, openFileRef,
   useProjection, sessionId, variant, disabled: inert = false, blocked,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory, overlay, leftItems, rightItems, footer,
@@ -490,6 +490,11 @@ export function InputBar({
   useEffect(() => {
     const hasFiles = (event: globalThis.DragEvent): boolean =>
       event.dataTransfer?.types.includes('Files') ?? false
+    // A file dragged from the explorer tree (the tree stamps this MIME type
+    // on dragstart) drops as a reference chip, VSCode-style; plain-text drags
+    // carry only 'text/plain' and keep the native drop-into-textarea path.
+    const isTreeFileDrag = (event: globalThis.DragEvent): boolean =>
+      event.dataTransfer?.types.includes('application/x-dsh-file') ?? false
     const reset = (): void => {
       dragDepthRef.current = 0
       setDragActive(false)
@@ -501,9 +506,17 @@ export function InputBar({
       setDragActive(true)
     }
     const onDragOver = (event: globalThis.DragEvent): void => {
-      if (!hasFiles(event) || event.dataTransfer === null) return
-      event.preventDefault()
-      event.dataTransfer.dropEffect = canAcceptDrop ? 'copy' : 'none'
+      if (event.dataTransfer === null) return
+      if (hasFiles(event)) {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = canAcceptDrop ? 'copy' : 'none'
+        return
+      }
+      // Tree-file drags must be allowed to drop anywhere over the window.
+      if (isTreeFileDrag(event)) {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+      }
     }
     const onDragLeave = (event: globalThis.DragEvent): void => {
       if (!hasFiles(event)) return
@@ -516,11 +529,21 @@ export function InputBar({
       if ((event.target === document.documentElement || event.target === document.body) && leavingViewport) reset()
     }
     const onDrop = (event: globalThis.DragEvent): void => {
-      if (!hasFiles(event)) return
-      event.preventDefault()
-      reset()
-      if (!canAcceptDrop) return
-      intakeImages([...(event.dataTransfer?.files ?? [])])
+      if (event.dataTransfer === null) return
+      if (hasFiles(event)) {
+        event.preventDefault()
+        reset()
+        if (canAcceptDrop) intakeImages([...(event.dataTransfer?.files ?? [])])
+        return
+      }
+      if (isTreeFileDrag(event) && !locked && !machineBusy) {
+        const path = event.dataTransfer.getData('text/plain')
+        if (path !== '') {
+          event.preventDefault()
+          reset()
+          addFileRef({ path, name: path.split(/[\\/]/).filter(Boolean).pop() ?? path, lines: null })
+        }
+      }
     }
     document.addEventListener('dragenter', onDragEnter)
     document.addEventListener('dragover', onDragOver)
@@ -710,7 +733,8 @@ export function InputBar({
         {fileRefs.length > 0 && (
           <div className={css.fileRefs} role="list" aria-label={t('composer.fileRefs')}>
             {fileRefs.map(ref => (
-              <span key={ref.path} role="listitem" className={css.fileRefChip} title={ref.path}>
+              <span key={ref.path} role="listitem" className={css.fileRefChip} title={ref.path}
+                onClick={() => openFileRef(ref.path)}>
                 <IconCodeOutline16 size={12} className={css.fileRefIcon} />
                 <span className={css.fileRefName}>{ref.name}</span>
                 {ref.lines !== null && (
@@ -725,14 +749,14 @@ export function InputBar({
                     className={ref.pinned === true ? clsx(css.fileRefPin, css.fileRefPinActive) : css.fileRefPin}
                     aria-label={ref.pinned === true ? t('composer.unpinFileRef') : t('composer.pinFileRef')}
                     title={ref.pinned === true ? t('composer.unpinFileRef') : t('composer.pinFileRef')}
-                    onClick={() => setActiveFilePinned(ref.pinned !== true)}>
+                    onClick={(event) => { event.stopPropagation(); setActiveFilePinned(ref.pinned !== true) }}>
                     <IconPinOutline14 size={12} />
                   </button>
                 )}
                 {ref.global !== true && (
                   <button type="button" className={css.fileRefClose}
                     aria-label={t('composer.removeFileRef')}
-                    onClick={() => removeFileRef({ path: ref.path, lines: ref.lines })}>
+                    onClick={(event) => { event.stopPropagation(); removeFileRef({ path: ref.path, lines: ref.lines }) }}>
                     ×
                   </button>
                 )}

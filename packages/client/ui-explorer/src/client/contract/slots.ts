@@ -5,7 +5,8 @@
  * (this package registers into all three, the same ownership split as
  * sidebar.workspaces).
  */
-import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls ui-sidebar's SlotMap merge (the explorer slot entries) into
 // every program that sees this contract, so PropsRuntime<'sidebar.explorer.files'>
 // resolves.
@@ -33,6 +34,14 @@ export interface ExplorerInjected {
   addFileRef(ref: { path: string; name: string; lines: { start: number; end: number } | null }): void
   /** Report the viewer's active tab (with its selected line range) so the chat treats it as preferred context. */
   onActiveFile(file: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
+  /**
+   * Registrant hooks compartment: a composer chip click announces the file
+   * to open; the renderer binds usePendingOpen from this source.
+   */
+  hooks: {
+    /** One open-request (seq bumps so repeated clicks on the same path fire). */
+    pendingOpen: ObservableSnapshot<{ path: string; seq: number } | null>
+  }
 }
 
 /** Full props of the file-tree entry (opens files through the shared store). */
@@ -40,17 +49,17 @@ export type FileTreeProps =
   & PropsRuntime<'sidebar.explorer.files'>
   & PropsStore<ReturnType<typeof createExplorerStore>>
   & PropsLocale<'explorer'>
-  & ExplorerInjected
+  & InjectFace<ExplorerInjected>
 
 /** Full props of the Git entry. */
-export type GitPanelProps = PropsRuntime<'sidebar.explorer.git'> & PropsLocale<'explorer'> & ExplorerInjected
+export type GitPanelProps = PropsRuntime<'sidebar.explorer.git'> & PropsLocale<'explorer'> & InjectFace<ExplorerInjected>
 
 /** Full props of the center file-viewer entry. */
 export type FileViewerProps =
   & PropsRuntime<'file-viewer'>
   & PropsStore<ReturnType<typeof createExplorerStore>>
   & PropsLocale<'explorer'>
-  & ExplorerInjected
+  & InjectFace<ExplorerInjected>
 
 /** The explorer namespace key union, re-exported for consumers. */
 export type { ExplorerKey }

@@ -24,7 +24,7 @@ function basenameOf(path: string): string {
   return path.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? path
 }
 
-export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList, t }: FileTreeProps) {
+export function FileTree({ useStore, useWorkspaces, useSessions, usePendingOpen, actions, fsList, t }: FileTreeProps) {
   const workspaceItems = useWorkspaces(s => s.items)
   const sessionCwd = useSessions((s) => {
     const current = s.current
@@ -151,6 +151,16 @@ export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList
     }
   }, [reveal.seq])
 
+  // A composer chip click opens the referenced file in the center viewer:
+  // the request arrives through the pendingOpen hook source (apply writes it
+  // from the explorer/open-file-request event), and the store action here
+  // adds/activates the tab exactly like a tree click.
+  const pendingOpen = usePendingOpen(s => s)
+  useEffect(() => {
+    if (pendingOpen === null) return
+    actions.openFile({ path: pendingOpen.path, name: basenameOf(pendingOpen.path) })
+  }, [pendingOpen, actions])
+
   // Re-list the root and every expanded directory on an interval, preserving
   // expansion state; a manual refresh (generation bump) supersedes stale polls.
   useEffect(() => {
@@ -189,6 +199,15 @@ export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList
             aria-expanded={isDirectory ? isOpen : undefined}
             aria-selected={activePath === entry.path}
             data-tree-path={entry.path}
+            draggable={!isDirectory}
+            onDragStart={(event) => {
+              // Dragging a file onto the chat composer adds it as a reference
+              // chip (VSCode behavior); the custom MIME type marks the source
+              // so the composer can tell a tree drag from plain-text drops.
+              event.dataTransfer.effectAllowed = 'copy'
+              event.dataTransfer.setData('text/plain', entry.path)
+              event.dataTransfer.setData('application/x-dsh-file', entry.path)
+            }}
             onClick={() => {
               if (isDirectory) {
                 toggle(entry.path)
