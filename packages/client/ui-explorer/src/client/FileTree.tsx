@@ -120,7 +120,7 @@ export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList
   }, [expanded, children, loading, errors, listLevel])
 
   /** Auto-refresh interval: external file changes (git, other editors) show up without a manual refresh. */
-  const AUTO_REFRESH_MS = 3000
+  const AUTO_REFRESH_MS = 1000
 
   /** Expand/collapse one directory; first expansion lists its children. */
   const toggle = useCallback((path: string) => {

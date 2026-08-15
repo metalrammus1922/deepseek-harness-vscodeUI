@@ -20,7 +20,7 @@ import css from './FileViewer.module.css'
 type Phase = 'idle' | 'loading' | 'ready' | 'error'
 
 /** External-change poll interval for the active file. */
-const FILE_POLL_MS = 3000
+const FILE_POLL_MS = 1000
 
 /**
  * Render the open file tabs and the active file's content in a VS2019-Dark
