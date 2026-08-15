@@ -264,7 +264,7 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
             role="tab"
             aria-selected={tab.path === activePath}
             className={tab.path === activePath ? css.tabActive : css.tab}
-            onClick={() => { actions.activateFile(tab.path) }}
+            onClick={() => { actions.activateFile(tab.path); actions.requestReveal(tab.path) }}
           >
             {tabDirty(tab.path) && <span className={css.dirtyDot} title={t('viewer.modified')} aria-label={t('viewer.modified')} />}
             <span className={css.tabName} title={tab.path}>{tab.name}</span>

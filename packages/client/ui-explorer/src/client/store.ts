@@ -15,10 +15,22 @@ export interface OpenedFile {
   name: string
 }
 
-/** Viewer state: the open tabs and the active tab's path (null when empty). */
+/** One tree-reveal request (bumped by a viewer tab click). */
+export interface RevealRequest {
+  /** Path to reveal in the file tree; null clears the request. */
+  path: string | null
+  /** Monotonic bump so repeated requests for the same path still fire. */
+  seq: number
+}
+
+/** Viewer state: the open tabs, the active tab's path, and reveal requests. */
 type ExplorerState = {
   tabs: OpenedFile[]
   activePath: string | null
+  /** Tree-reveal request: written only by a viewer tab click, so the file
+   * tree scrolls on tab switches but never yanks the user's manual scroll
+   * during tree browsing or auto-refresh. */
+  reveal: RevealRequest
 }
 
 /** The complete mutation set of the explorer store. */
@@ -29,6 +41,8 @@ type ExplorerActions = {
   activateFile: (draft: ExplorerState, path: string) => void
   /** Close one tab; closing the active tab activates its right neighbour. */
   closeFile: (draft: ExplorerState, path: string) => void
+  /** Request the file tree to reveal a path (a viewer tab click, never a tree open). */
+  requestReveal: (draft: ExplorerState, path: string) => void
 }
 
 /**
@@ -37,7 +51,7 @@ type ExplorerActions = {
  */
 export function createExplorerStore(): EngineStoreHandle<ExplorerState, ExplorerActions> {
   const handle = defineStore({
-    init: (): ExplorerState => ({ tabs: [], activePath: null }),
+    init: (): ExplorerState => ({ tabs: [], activePath: null, reveal: { path: null, seq: 0 } }),
     actions: {
       openFile: (d, file) => {
         const index = d.tabs.findIndex(tab => tab.path === file.path)
@@ -60,6 +74,9 @@ export function createExplorerStore(): EngineStoreHandle<ExplorerState, Explorer
         // The closed tab's right neighbour takes over; past the end, the new
         // tail does.
         d.activePath = d.tabs[Math.min(index, d.tabs.length - 1)]?.path ?? null
+      },
+      requestReveal: (d, path) => {
+        d.reveal = { path, seq: d.reveal.seq + 1 }
       },
     },
   })

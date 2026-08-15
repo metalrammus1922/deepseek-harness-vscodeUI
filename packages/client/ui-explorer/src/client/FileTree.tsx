@@ -135,21 +135,21 @@ export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList
     }
   }, [expanded, children, loading, listLevel])
 
-  // Keep the active file's row in view when the selection changes (a tab
-  // click in the viewer). Only rows currently rendered can be scrolled; the
-  // tree re-scans when expansion changes add the row.
+  // Reveal a tree row only when the viewer explicitly asks (a tab click).
+  // Tree opens and auto-refresh never yank the user's manual scroll position.
   const bodyRef = useRef<HTMLDivElement | null>(null)
+  const reveal = useStore(s => s.reveal)
   useEffect(() => {
-    if (activePath === null) return
+    if (reveal.path === null) return
     const rows = bodyRef.current?.querySelectorAll('[data-tree-path]')
     if (rows === undefined) return
     for (const row of rows) {
-      if (row.getAttribute('data-tree-path') === activePath) {
+      if (row.getAttribute('data-tree-path') === reveal.path) {
         row.scrollIntoView({ block: 'nearest' })
         return
       }
     }
-  }, [activePath, children])
+  }, [reveal.seq])
 
   // Re-list the root and every expanded directory on an interval, preserving
   // expansion state; a manual refresh (generation bump) supersedes stale polls.
