@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -11,9 +11,12 @@ import type {} from '../src/client/index.ts'
 import type { FileViewerProps } from '../src/client/contract/slots.ts'
 import { createExplorerStore } from '../src/client/store.ts'
 import { FileViewer } from '../src/client/FileViewer.tsx'
+import { EXPLORER_STORAGE_KEY } from '../src/client/persistence.ts'
 import { zh } from '../src/client/locales.ts'
 
 afterEach(cleanup)
+// The viewer persists its tabs/content in localStorage; isolated per test.
+beforeEach(() => localStorage.clear())
 
 const t: FileViewerProps['t'] = makeTranslate(zh, commonZh)
 
@@ -31,8 +34,8 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
   const gitScan = vi.fn(async (root: string) => ({ root, repos: [], truncated: false }))
   const props: FileViewerProps = {
     useStore: bindSnapshotSelector(store),
-    useSessions: hook({} as never) as never,
-    useWorkspaces: hook({} as never) as never,
+    useSessions: hook({ current: undefined }) as unknown as FileViewerProps['useSessions'],
+    useWorkspaces: hook({ items: [{ path: '/w' }] }) as unknown as FileViewerProps['useWorkspaces'],
     actions: store.actions,
     fsList,
     fsRead,
@@ -133,5 +136,44 @@ describe('FileViewer', () => {
     expect(m.props.addFileRef).toHaveBeenCalledWith({ path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 2 } })
     // The selection stays so the chip keeps its line range.
     expect(screen.getByRole('button', { name: '添加到对话' })).toBeTruthy()
+  })
+
+  it('restores opened tabs and cached content after a page refresh', async () => {
+    localStorage.setItem(EXPLORER_STORAGE_KEY, JSON.stringify({
+      root: '/w',
+      tabs: [{ path: '/w/a.ts', name: 'a.ts' }, { path: '/w/b.ts', name: 'b.ts' }],
+      activePath: '/w/a.ts',
+      files: {
+        '/w/a.ts': { saved: 'line one\nline two\n', draft: 'line one\nline two\n', truncated: false },
+      },
+    }))
+    const m = mount()
+    // The store is seeded from the persisted payload: both tabs open, the
+    // active one active.
+    await waitFor(() => {
+      expect(m.store.getSnapshot().tabs.map(tab => tab.path)).toEqual(['/w/a.ts', '/w/b.ts'])
+      expect(m.store.getSnapshot().activePath).toBe('/w/a.ts')
+    })
+    // The restored active tab renders from the cached content without a
+    // disk read, and the payload is written back for the next reload.
+    expect(m.fsRead).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(cmView(m.view.container).state.doc.toString()).toBe('line one\nline two\n')
+    })
+    expect(localStorage.getItem(EXPLORER_STORAGE_KEY)).toContain('/w/a.ts')
+  })
+
+  it('skips the restore when the persisted root is a different workspace', async () => {
+    localStorage.setItem(EXPLORER_STORAGE_KEY, JSON.stringify({
+      root: '/other',
+      tabs: [{ path: '/other/x.cs', name: 'x.cs' }],
+      activePath: '/other/x.cs',
+      files: {},
+    }))
+    const m = mount()
+    await waitFor(() => {
+      expect(m.store.getSnapshot().tabs).toEqual([])
+    })
+    expect(screen.getByText('在左侧文件树中点击一个文件以查看其内容')).toBeTruthy()
   })
 })

@@ -6,7 +6,9 @@
  * highlighting; select code and press "添加到对话" to add a `path:start-end`
  * reference chip to the AI chat composer (the model reads the file from
  * the reference); edit in place and save with the toolbar button or
- * Ctrl+S. Root-scoped — no session needed to view files.
+ * Ctrl+S. Open tabs and their cached content persist in localStorage, so
+ * a page refresh brings them back. Root-scoped — no session needed to
+ * view files.
  */
 import { useEffect, useRef, useState } from 'react'
 import { EditorState } from '@codemirror/state'
@@ -14,6 +16,7 @@ import { EditorView, keymap, lineNumbers } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import type { FileViewerProps } from './contract/slots.ts'
 import { languageForPath } from './language.ts'
+import { loadExplorerState, saveExplorerState } from './persistence.ts'
 import { vs2019EditorExtensions } from './vs2019-theme.ts'
 import css from './FileViewer.module.css'
 
@@ -32,10 +35,22 @@ const FILE_POLL_MS = 1000
  * @param props - composed slot props (store share + injected verbs + copy).
  * @returns the viewer element tree.
  */
-export function FileViewer({ useStore, actions, fsRead, fsWrite, addFileRef, onActiveFile, t }: FileViewerProps) {
+export function FileViewer({
+  useStore, useWorkspaces, useSessions, actions, fsRead, fsWrite, addFileRef, onActiveFile, t,
+}: FileViewerProps) {
   const tabs = useStore(s => s.tabs)
   const activePath = useStore(s => s.activePath)
   const active = tabs.find(tab => tab.path === activePath) ?? null
+
+  // The workspace root the opened tabs belong to: persisted tabs restore
+  // only under their own root, so a different workspace never resurfaces
+  // another one's files.
+  const workspaceItems = useWorkspaces(s => s.items)
+  const sessionCwd = useSessions((s) => {
+    const current = s.current
+    return current !== undefined ? s.byId[current]?.cwd : undefined
+  })
+  const root = sessionCwd ?? workspaceItems[0]?.path
 
   // Report the active tab (and its current selection) as the chat's
   // preferred file context — on tab changes and on every selection change
@@ -95,6 +110,53 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addFileRef, onA
     })
     return () => { controller.abort() }
   }, [active, fsRead])
+
+  // Restore the open tabs, the active file, and the cached content after a
+  // page refresh (a reload used to wipe every tab). Runs once the workspace
+  // root is known; a root mismatch (different workspace) skips the restore.
+  // Seeding cachedPathsRef keeps restored tabs instant — no disk re-read.
+  useEffect(() => {
+    const persisted = loadExplorerState()
+    if (persisted === null || persisted.root !== root || persisted.tabs.length === 0) return
+    for (const tab of persisted.tabs) actions.openFile(tab)
+    if (persisted.activePath !== null) actions.activateFile(persisted.activePath)
+    const restoredSaved: Record<string, string> = {}
+    const restoredDrafts: Record<string, string> = {}
+    const restoredTruncated: Record<string, boolean> = {}
+    for (const [path, file] of Object.entries(persisted.files)) {
+      restoredSaved[path] = file.saved
+      restoredDrafts[path] = file.draft
+      if (file.truncated) restoredTruncated[path] = true
+      cachedPathsRef.current.add(path)
+    }
+    setSaved(prev => ({ ...prev, ...restoredSaved }))
+    setDrafts(prev => ({ ...prev, ...restoredDrafts }))
+    setTruncated(prev => ({ ...prev, ...restoredTruncated }))
+  }, [root, actions])
+
+  // Persist the open tabs and their cached content (debounced so keystroke
+  // bursts coalesce into one write). Content is best-effort and size-capped;
+  // the tab list itself always survives a reload.
+  useEffect(() => {
+    if (root === undefined) return
+    const timer = setTimeout(() => {
+      saveExplorerState({
+        root,
+        tabs: tabs.map(tab => ({ path: tab.path, name: tab.name })),
+        activePath,
+        files: Object.fromEntries(
+          tabs
+            .filter(tab => drafts[tab.path] !== undefined)
+            .map(tab => [tab.path, {
+              saved: saved[tab.path] ?? '',
+              draft: drafts[tab.path] ?? '',
+              truncated: truncated[tab.path] === true,
+            }]),
+        ),
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [tabs, activePath, saved, drafts, truncated, root])
 
   const activeSaved = active === null ? undefined : saved[active.path]
   const activeDraft = active === null ? undefined : drafts[active.path]
