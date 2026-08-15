@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  IconPlusOutline16, IconWarningOutline16, Toast, Tooltip,
+  IconCodeOutline16, IconPlusOutline16, IconWarningOutline16, Toast, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AttachmentRail, DropOverlay, ImageLightbox } from '@deepseek-ai/dsh-client-ui-attachment'
 import type { AttachmentRailItem } from '@deepseek-ai/dsh-client-ui-attachment'
@@ -24,6 +24,7 @@ import type {} from '@deepseek-ai/dsh-goal/client'
 // api-remotes import already places it in every client program.
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerAttachment, ComposerBarProps } from '../contract/slots.ts'
+import type { FileRef } from '../service.ts'
 import { deriveDecorations } from '../input/decorations.ts'
 import type { DraftDecorations } from '../input/decorations.ts'
 import {
@@ -43,10 +44,28 @@ interface ComposerRailItem extends AttachmentRailItem {
 
 export type InputBarProps = ComposerBarProps
 
+/**
+ * Parse a VSCode-style file reference pasted into the composer: `path`,
+ * `path:line`, or `path:start-end`. Returns null when the text is not a
+ * plausible single-line path (needs a separator and a file extension).
+ * @param text - the raw pasted line.
+ * @returns the parsed reference, or null.
+ */
+function parsePathRef(text: string): FileRef | null {
+  const trimmed = text.trim()
+  const m = /^(.+?):(\d+)(?:-(\d+))?$/.exec(trimmed)
+  const path = m === null ? trimmed : (m[1] ?? trimmed)
+  if (!/[\\/]/.test(path) || !/\.[A-Za-z0-9]+$/.test(path)) return null
+  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path
+  const lines = m === null ? null : { start: Number(m[2]), end: Number(m[3] ?? m[2]) }
+  return { path, name, lines }
+}
+
 export function InputBar({
   useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
   resolveSubmitMode, toggleCommandMenu, stop, command, t,
-  renderSlot, useNotices, useLexicon, useMenuLauncher,
+  renderSlot, useNotices, useLexicon, useMenuLauncher, useActiveFile,
+  addFileRef, removeFileRef,
   useProjection, sessionId, variant, disabled: inert = false, blocked,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory, overlay, leftItems, rightItems, footer,
@@ -54,6 +73,7 @@ export function InputBar({
   const input = useInput(s => s)
   const notice = useNotices(s => s)
   const lexicon = useLexicon(s => s)
+  const fileRefs = useActiveFile(s => s)
   const commandMenuOpen = useMenuLauncher(source => source === 'command')
   const promptError = useSession(s => s.promptError) ?? null
   const running = useSession(s => s.running) ?? false
@@ -393,6 +413,17 @@ export function InputBar({
   const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>): void => {
     if (keyboard === undefined) return // absent machine: no draft can accept a paste
     if (machineBusy || locked) return
+    // A single-line file path becomes a reference chip instead of draft
+    // text (VSCode-style), so pasted file references stay compact.
+    const plain = e.clipboardData.getData('text/plain')
+    if (!plain.includes('\n')) {
+      const ref = parsePathRef(plain)
+      if (ref !== null) {
+        e.preventDefault()
+        addFileRef(ref)
+        return
+      }
+    }
     const files = Array.from(e.clipboardData.items)
       .filter(item => item.kind === 'file')
       .map(item => item.getAsFile())
@@ -676,6 +707,29 @@ export function InputBar({
       >
         {overlay !== undefined && <div className={css.overlayAnchor}>{overlay}</div>}
         {accessory !== undefined && <div className={css.accessory}>{accessory}</div>}
+        {fileRefs.length > 0 && (
+          <div className={css.fileRefs} role="list" aria-label={t('composer.fileRefs')}>
+            {fileRefs.map(ref => (
+              <span key={ref.path} role="listitem" className={css.fileRefChip} title={ref.path}>
+                <IconCodeOutline16 size={12} className={css.fileRefIcon} />
+                <span className={css.fileRefName}>{ref.name}</span>
+                {ref.lines !== null && (
+                  <span className={css.fileRefLines}>
+                    {ref.lines.start === ref.lines.end
+                      ? String(ref.lines.start)
+                      : `${ref.lines.start}-${ref.lines.end}`}
+                  </span>
+                )}
+                {ref !== fileRefs[0] && (
+                  <button type="button" className={css.fileRefClose}
+                    aria-label={t('composer.removeFileRef')} onClick={() => removeFileRef(ref.path)}>
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
         {railItems.length > 0 && (
           <div className={css.attachments}>
             <AttachmentRail

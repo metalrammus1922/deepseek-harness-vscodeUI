@@ -12,6 +12,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // Type-only imports: a plugin-to-plugin value import is a bundle purity
 // error, so scope resolution goes through the sessions service (scopeOf
 // method) instead of the standalone helper.
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ISessions, SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import type { ComposerAttachment } from './contract/slots.ts'
@@ -19,6 +20,21 @@ import type { QueueAction, QueueItemId } from './contract/queue.ts'
 import type { ComposerBlocks } from './input/blocks.ts'
 import type { DraftAttachmentId, SessionInputResolver } from './input/contract.ts'
 import type { InputSubmitMode } from './contract/composer-submission.ts'
+
+/** One VSCode-style file reference shown as a composer chip. */
+export interface FileRef {
+  /** Absolute host path. */
+  path: string
+  /** Display basename. */
+  name: string
+  /** Selected 1-based line range in the viewer, or null. */
+  lines: { start: number; end: number } | null
+}
+
+/** Compact `path:start-end` reference text (path alone without a range). */
+function compactRef(ref: FileRef): string {
+  return ref.lines === null ? ref.path : `${ref.path}:${ref.lines.start}-${ref.lines.end}`
+}
 
 /**
  * The outward conversation face (`ctx.conversation`): the scope-addressed
@@ -35,10 +51,22 @@ export interface IConversation {
   readonly blocks: ComposerBlocks
   /**
    * Set the preferred file context: the file the center viewer has open.
-   * Every send prefaces its text with this path so the model can locate it.
-   * @param file - the active viewer file, or null when no tab is open.
+   * Every send prefaces its text with a compact reference so the model can
+   * locate it; the composer renders it as the leading reference chip.
+   * @param file - the active viewer file (with its selected line range), or
+   * null when no tab is open.
    */
-  setActiveFile(file: { path: string; name: string } | null): void
+  setActiveFile(file: FileRef | null): void
+  /**
+   * Append one pasted file reference to the composer chip row.
+   * @param ref - the parsed reference.
+   */
+  addFileRef(ref: FileRef): void
+  /**
+   * Remove one pasted reference chip (the active-file chip is viewer-owned).
+   * @param path - the reference path to drop.
+   */
+  removeFileRef(path: string): void
   /**
    * Send a prompt into the caller scope's session (queued turn).
    * @param text - prompt text, sent verbatim as one text block.
@@ -99,13 +127,27 @@ export class ConversationController extends Service implements IConversation {
   readonly input: SessionInputResolver
   /** The per-session composer-block registry. */
   readonly blocks: ComposerBlocks
-  /** The center viewer's active file, prefixed to every send as context. */
-  private activeFile: { path: string; name: string } | null = null
+  /**
+   * The file-reference chips shown above the composer and prefixed to
+   * every send as context: the center viewer's active file (with its
+   * selected line range) plus any references pasted into the composer.
+   */
+  readonly fileRefs = createSnapshotStore<readonly FileRef[]>([])
   private readonly draftAttachments = new Map<DraftAttachmentId, ComposerAttachment>()
   private readonly imageUrls = new Map<string, ImageUrlEntry>()
   private readonly imageGenerations = new Map<SessionId, number>()
   private readonly createdImageUrls = new Set<string>()
   private disposed = false
+
+  private upsertRef(ref: FileRef): void {
+    const refs = this.fileRefs.getSnapshot()
+    const index = refs.findIndex(existing => existing.path === ref.path)
+    if (index === 0) {
+      this.fileRefs.set([ref, ...refs.slice(1)])
+      return
+    }
+    this.fileRefs.set(index === -1 ? [ref, ...refs] : [...refs.slice(0, index), ref, ...refs.slice(index + 1)])
+  }
 
   /**
    * @param ctx - owning root context (the plugin apply context; the service
@@ -141,11 +183,44 @@ export class ConversationController extends Service implements IConversation {
   }
 
   /**
-   * Set the preferred file context (the center viewer's active tab).
-   * @param file - the active viewer file, or null when no tab is open.
+   * Set the preferred file context (the center viewer's active tab). The
+   * composer shows it as the leading reference chip; every send prefaces
+   * its text with the compact reference.
+   * @param file - the active viewer file (with its selected line range, if
+   * any), or null when no tab is open.
    */
-  setActiveFile(file: { path: string; name: string } | null): void {
-    this.activeFile = file
+  setActiveFile(file: FileRef | null): void {
+    if (file === null) {
+      const [active, ...rest] = this.fileRefs.getSnapshot()
+      if (active === undefined) return
+      this.fileRefs.set(rest)
+      return
+    }
+    this.upsertRef(file)
+  }
+
+  /**
+   * Append one pasted file reference (a single-line path pasted into the
+   * composer) to the chip row, without inserting its text into the draft.
+   * @param ref - the parsed reference.
+   */
+  addFileRef(ref: FileRef): void {
+    const refs = this.fileRefs.getSnapshot()
+    const index = refs.findIndex(existing => existing.path === ref.path)
+    this.fileRefs.set(index === -1
+      ? [...refs, ref]
+      : refs.map((existing, position) => position === index ? ref : existing))
+  }
+
+  /**
+   * Remove one reference chip (the active-file chip cannot be removed; the
+   * viewer owns it).
+   * @param path - the reference path to drop.
+   */
+  removeFileRef(path: string): void {
+    const refs = this.fileRefs.getSnapshot()
+    if (refs[0]?.path === path) return
+    this.fileRefs.set(refs.filter(ref => ref.path !== path))
   }
 
   /**
@@ -340,9 +415,12 @@ export class ConversationController extends Service implements IConversation {
    * @returns the text to send (unchanged when no file context applies).
    */
   private prefacedText(text: string): string {
-    if (this.activeFile === null || text === '') return text
-    if (text.includes(this.activeFile.path)) return text
-    return `当前打开文件: ${this.activeFile.path}（${this.activeFile.name}）\n${text}`
+    if (text === '') return text
+    const refs = this.fileRefs.getSnapshot()
+    const missing = refs.filter(ref => !text.includes(ref.path))
+    if (missing.length === 0) return text
+    const prefix = missing.map(ref => compactRef(ref)).join('\n')
+    return `${prefix}\n${text}`
   }
 
   /** Convert browser files to canonical base64 prompt parts. */

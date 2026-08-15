@@ -37,10 +37,17 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
   const activePath = useStore(s => s.activePath)
   const active = tabs.find(tab => tab.path === activePath) ?? null
 
-  // Report the active tab as the chat's preferred file context.
+  // Report the active tab (and its current selection) as the chat's
+  // preferred file context — on tab changes and on every selection change
+  // so the composer chip keeps its line range live.
+  const [selection, setSelection] = useState<{ start: number; end: number } | null>(null)
   useEffect(() => {
-    onActiveFile(active === null ? null : { path: active.path, name: active.name })
-  }, [active, onActiveFile])
+    onActiveFile(active === null ? null : {
+      path: active.path,
+      name: active.name,
+      lines: selection === null ? null : { start: selection.start, end: selection.end },
+    })
+  }, [active, selection, onActiveFile])
 
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -169,8 +176,6 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
   const onEditorChangeRef = useRef<(path: string, doc: string) => void>(() => {})
   const onEditorSelectionRef = useRef<(state: EditorState) => void>(() => {})
 
-  // Selected line range (1-based) from the CodeMirror selection.
-  const [selection, setSelection] = useState<{ start: number; end: number } | null>(null)
 
   onEditorChangeRef.current = (path, doc) => {
     setDrafts(prev => (prev[path] === doc ? prev : { ...prev, [path]: doc }))

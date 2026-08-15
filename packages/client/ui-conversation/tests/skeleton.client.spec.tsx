@@ -3,6 +3,7 @@
 // hero (blank session) and active phases — same textarea DOM node, machine-
 // owned draft, and the hero workspace picker (switching = retargetWorkspace).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FileRef } from '../src/client/service.ts'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
 import {
@@ -207,6 +208,9 @@ function mount(
           useNotices={bindSnapshotSelector(wiring.notices)}
           useLexicon={bindSnapshotSelector(wiring.lexicon)}
           useMenuLauncher={bindSnapshotSelector(createSnapshotStore<string | null>(null))}
+          useActiveFile={bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>([]))}
+          addFileRef={vi.fn()}
+          removeFileRef={vi.fn()}
           stop={stop}
           command={() => Promise.resolve(true)}
           t={t}

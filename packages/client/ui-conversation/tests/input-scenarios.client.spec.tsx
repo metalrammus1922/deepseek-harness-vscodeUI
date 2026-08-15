@@ -16,6 +16,7 @@ import {
 } from '@deepseek-ai/dsh-client-runtime/client'
 import { InputTriggerService } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { ClientSessionContext, CommandClaim, PickOutcome, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
+import type { FileRef } from '../src/client/service.ts'
 import { FakeApiClient, fakeRemote, ok } from '../../runtime/tests/fake-api.client.ts'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
@@ -152,6 +153,9 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
     useNotices: bindSnapshotSelector(shell.notices),
     useLexicon: bindSnapshotSelector(shell.lexicon),
     useMenuLauncher: bindSnapshotSelector(controller.launcher),
+    useActiveFile: bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>([])),
+    addFileRef: vi.fn(),
+    removeFileRef: vi.fn(),
     renderSlot: (() => null) as InputBarProps['renderSlot'],
     stop: vi.fn(),
     command: () => Promise.resolve(true),

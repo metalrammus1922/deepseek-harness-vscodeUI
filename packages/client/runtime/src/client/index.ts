@@ -181,11 +181,14 @@ declare module '@deepseek-ai/cordis' {
     'explorer/add-to-chat'(payload: { text: string }): void
     /**
      * The file currently open in the center viewer (null when none). The
-     * conversation layer keeps it as the preferred file context for sends.
+     * conversation layer keeps it as the preferred file context for sends,
+     * and the composer renders it as a compact reference chip with the
+     * currently selected line range when one exists.
      * @mode emit
-     * @param payload - the active file, or null when every tab is closed.
+     * @param payload - the active file (with its selected line range, if any),
+     * or null when every tab is closed.
      */
-    'explorer/active-file'(payload: { path: string; name: string } | null): void
+    'explorer/active-file'(payload: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
   }
   interface Context {
     slots: import('./slots.ts').SlotRegistry

@@ -474,3 +474,69 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+/* File-reference chips (VSCode style): the active viewer file plus any
+   pasted references, rendered as one compact line above the input. */
+.fileRefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 0;
+}
+
+.fileRefChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 260px;
+  padding: 2px 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.25));
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.1));
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.fileRefIcon {
+  flex: none;
+  color: var(--dsw-alias-text-secondary, rgba(128, 128, 128, 0.8));
+}
+
+.fileRefName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.fileRefLines {
+  flex: none;
+  font-size: 11px;
+  color: var(--dsw-alias-text-secondary, rgba(128, 128, 128, 0.8));
+  background: var(--dsw-alias-bg-mask-1, rgba(0, 0, 0, 0.12));
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.fileRefClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  flex: none;
+}
+
+.fileRefClose:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.15));
+}

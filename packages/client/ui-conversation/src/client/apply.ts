@@ -2,7 +2,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { resolveSlotLabel, type BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  resolveWorkspacePath, type ISessions, type SessionId,
+  resolveWorkspacePath, type ISessions, type ObservableSnapshot, type SessionId,
 } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the ctx.settingsScope Context merge. Cross-plugin collaboration
 // goes through the service, never a value import (client bundle purity gate).
@@ -19,7 +19,7 @@ import type {
 import type { InputNotice } from './input/contract.ts'
 import { createChatStore } from './stores.ts'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.ts'
-import type { IConversation } from './service.ts'
+import type { FileRef, IConversation } from './service.ts'
 import { ComposerBlockRegistry } from './input/blocks.ts'
 import type { ComposerBlock } from './input/blocks.ts'
 import { InputHub } from './input/hub.ts'
@@ -72,6 +72,13 @@ const ABSENT_LEXICON = {
 }
 const ABSENT_MENU_LAUNCHER = {
   getSnapshot: (): string | null => null,
+  subscribe: () => () => {},
+}
+const EMPTY_FILE_REFS: readonly FileRef[] = []
+const ABSENT_FILE_REFS: ObservableSnapshot<readonly FileRef[]> = {
+  // Module-level identity: an observable-hook selector must see one stable
+  // reference between changes, or the bar re-renders forever.
+  getSnapshot: () => EMPTY_FILE_REFS,
   subscribe: () => () => {},
 }
 
@@ -297,7 +304,14 @@ export function apply(ctx: Context): void {
           toggleCommandMenu: undefined,
           stop: undefined,
           command: undefined,
-          hooks: { notices: ABSENT_NOTICES, lexicon: ABSENT_LEXICON, menuLauncher: ABSENT_MENU_LAUNCHER },
+          addFileRef: () => {},
+          removeFileRef: () => {},
+          hooks: {
+            notices: ABSENT_NOTICES,
+            lexicon: ABSENT_LEXICON,
+            menuLauncher: ABSENT_MENU_LAUNCHER,
+            activeFile: ABSENT_FILE_REFS,
+          },
         }
       }
       const conversation = concreteConversation(ctx)
@@ -355,7 +369,10 @@ export function apply(ctx: Context): void {
           notices: shell.notices,
           lexicon: shell.lexicon,
           menuLauncher: inputTriggers?.launcher ?? ABSENT_MENU_LAUNCHER,
+          activeFile: conversation.fileRefs,
         },
+        addFileRef: ref => conversation.addFileRef(ref),
+        removeFileRef: path => conversation.removeFileRef(path),
       }
     },
   }, InputBar)

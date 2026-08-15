@@ -31,8 +31,8 @@ export interface ExplorerInjected {
   gitScan(root: string, signal?: AbortSignal): Promise<GitScan>
   /** Append a code selection reference to the AI chat composer (no-op without a session). */
   addToChat(text: string): void
-  /** Report the viewer's active tab so the chat treats it as preferred context. */
-  onActiveFile(file: { path: string; name: string } | null): void
+  /** Report the viewer's active tab (with its selected line range) so the chat treats it as preferred context. */
+  onActiveFile(file: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
 }
 
 /** Full props of the file-tree entry (opens files through the shared store). */

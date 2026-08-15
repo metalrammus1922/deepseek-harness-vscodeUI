@@ -19,6 +19,7 @@ import type {
 } from '../input/contract.ts'
 import type { createChatStore } from '../stores.ts'
 import type { ComposerSubmitGesture, InputSubmitMode } from './composer-submission.ts'
+import type { FileRef } from '../service.ts'
 import type { ChatNode, ChatNodeKind } from './chat-nodes.ts'
 import type { CallId, SelectionTarget, ViewTab } from './views.ts'
 
@@ -529,7 +530,13 @@ export interface ComposerBarInjected {
     lexicon: ObservableSnapshot<ReadonlyMap<'/' | '@', readonly string[]>>
     /** Source name opened by the programmatic menu launcher, or null. */
     menuLauncher: ObservableSnapshot<string | null>
+    /** The file-reference chips (active viewer file + pasted references). */
+    activeFile: ObservableSnapshot<readonly FileRef[]>
   }
+  /** Append one pasted file reference to the composer chip row. */
+  addFileRef: (ref: FileRef) => void
+  /** Remove one pasted reference chip (the active-file chip is viewer-owned). */
+  removeFileRef: (path: string) => void
 }
 
 /**
