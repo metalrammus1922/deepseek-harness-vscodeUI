@@ -733,8 +733,13 @@ export function InputBar({
         {fileRefs.length > 0 && (
           <div className={css.fileRefs} role="list" aria-label={t('composer.fileRefs')}>
             {fileRefs.map(ref => (
-              <span key={ref.path} role="listitem" className={css.fileRefChip} title={ref.path}
-                onClick={() => openFileRef(ref.path)}>
+              // The global chip and a manual chip may share the same path (they are
+              // different chips), so the React key must be identity-based, not path.
+              <span key={ref.global === true
+                ? `g:${ref.path}`
+                : `m:${ref.path}:${ref.lines === null ? '' : `${ref.lines.start}-${ref.lines.end}`}`}
+              role="listitem" className={css.fileRefChip} title={ref.path}
+              onClick={() => openFileRef(ref.path)}>
                 <IconCodeOutline16 size={12} className={css.fileRefIcon} />
                 <span className={css.fileRefName}>{ref.name}</span>
                 {ref.lines !== null && (
