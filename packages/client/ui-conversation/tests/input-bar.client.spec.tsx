@@ -90,6 +90,10 @@ interface BenchOptions {
   commandMenuOpen?: boolean
   busyEnter?: 'queue' | 'steer'
   toggleCommandMenu?: (selection: { start: number; end: number }) => void
+  /** File-reference chips fed to the bar (default none). */
+  fileRefs?: readonly FileRef[]
+  setActiveFilePinned?: (pinned: boolean) => void
+  removeFileRef?: (ref: { path: string; lines: FileRef['lines'] }) => void
 }
 
 /** One pending queue row (the runtime snapshot shape, as the dock tests build it). */
@@ -176,9 +180,10 @@ function bench(over?: BenchOptions) {
     useNotices: bindSnapshotSelector(shell.notices),
     useLexicon: bindSnapshotSelector(shell.lexicon),
     useMenuLauncher: bindSnapshotSelector(menuLauncher),
-    useActiveFile: bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>([])),
+    useActiveFile: bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>(over?.fileRefs ?? [])),
     addFileRef: vi.fn(),
-    removeFileRef: vi.fn(),
+    removeFileRef: over?.removeFileRef ?? vi.fn(),
+    setActiveFilePinned: over?.setActiveFilePinned ?? vi.fn(),
     stop,
     command: over?.command ?? (() => Promise.resolve(true)),
     // Mirrors the real lookup chain (conversation namespace, then common).
@@ -1326,5 +1331,33 @@ describe('command launcher chrome and control seats', () => {
     cleanup()
     const live = bench({ running: true, permissions })
     expect((live.view.getByLabelText(/^访问模式/) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('renders the global chip with a pin toggle and closes manual chips by identity', () => {
+    const setActiveFilePinned = vi.fn()
+    const removeFileRef = vi.fn()
+    const { view } = bench({
+      fileRefs: [
+        { path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true },
+        { path: '/w/a.ts', name: 'a.ts', lines: { start: 20, end: 30 } },
+      ],
+      setActiveFilePinned,
+      removeFileRef,
+    })
+    // The global chip carries the pin toggle; the manual chip the close button.
+    fireEvent.click(view.getByRole('button', { name: '固定当前文件，切换标签时保留' }))
+    expect(setActiveFilePinned).toHaveBeenCalledWith(true)
+    const close = view.getByRole('button', { name: '移除引用' })
+    fireEvent.click(close)
+    expect(removeFileRef).toHaveBeenCalledWith({ path: '/w/a.ts', lines: { start: 20, end: 30 } })
+    cleanup()
+  })
+  it('shows the unpin action on a pinned global chip and reports the unpin', () => {
+    const setActiveFilePinned = vi.fn()
+    const { view } = bench({
+      fileRefs: [{ path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true, pinned: true }],
+      setActiveFilePinned,
+    })
+    fireEvent.click(view.getByRole('button', { name: '取消固定，跟随当前文件' }))
+    expect(setActiveFilePinned).toHaveBeenCalledWith(false)
   })
 })

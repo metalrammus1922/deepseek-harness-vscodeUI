@@ -306,6 +306,7 @@ export function apply(ctx: Context): void {
           command: undefined,
           addFileRef: () => {},
           removeFileRef: () => {},
+          setActiveFilePinned: () => {},
           hooks: {
             notices: ABSENT_NOTICES,
             lexicon: ABSENT_LEXICON,
@@ -372,7 +373,8 @@ export function apply(ctx: Context): void {
           activeFile: conversation.fileRefs,
         },
         addFileRef: ref => conversation.addFileRef(ref),
-        removeFileRef: path => conversation.removeFileRef(path),
+        removeFileRef: ref => conversation.removeFileRef(ref),
+        setActiveFilePinned: pinned => conversation.setActiveFilePinned(pinned),
       }
     },
   }, InputBar)

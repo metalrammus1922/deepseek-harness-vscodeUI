@@ -156,6 +156,7 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
     useActiveFile: bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>([])),
     addFileRef: vi.fn(),
     removeFileRef: vi.fn(),
+    setActiveFilePinned: vi.fn(),
     renderSlot: (() => null) as InputBarProps['renderSlot'],
     stop: vi.fn(),
     command: () => Promise.resolve(true),

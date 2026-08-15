@@ -540,3 +540,26 @@
 .fileRefClose:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.15));
 }
+
+.fileRefPin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-text-secondary, rgba(128, 128, 128, 0.8));
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+
+.fileRefPin:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.15));
+}
+
+.fileRefPinActive {
+  color: var(--dsw-alias-accent, #007acc);
+}

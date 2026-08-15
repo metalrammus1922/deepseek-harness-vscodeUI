@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  IconCodeOutline16, IconPlusOutline16, IconWarningOutline16, Toast, Tooltip,
+  IconCodeOutline16, IconPinOutline14, IconPlusOutline16, IconWarningOutline16, Toast, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AttachmentRail, DropOverlay, ImageLightbox } from '@deepseek-ai/dsh-client-ui-attachment'
 import type { AttachmentRailItem } from '@deepseek-ai/dsh-client-ui-attachment'
@@ -65,7 +65,7 @@ export function InputBar({
   useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
   resolveSubmitMode, toggleCommandMenu, stop, command, t,
   renderSlot, useNotices, useLexicon, useMenuLauncher, useActiveFile,
-  addFileRef, removeFileRef,
+  addFileRef, removeFileRef, setActiveFilePinned,
   useProjection, sessionId, variant, disabled: inert = false, blocked,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory, overlay, leftItems, rightItems, footer,
@@ -720,9 +720,19 @@ export function InputBar({
                       : `${ref.lines.start}-${ref.lines.end}`}
                   </span>
                 )}
-                {ref !== fileRefs[0] && (
+                {ref.global === true && (
+                  <button type="button"
+                    className={ref.pinned === true ? clsx(css.fileRefPin, css.fileRefPinActive) : css.fileRefPin}
+                    aria-label={ref.pinned === true ? t('composer.unpinFileRef') : t('composer.pinFileRef')}
+                    title={ref.pinned === true ? t('composer.unpinFileRef') : t('composer.pinFileRef')}
+                    onClick={() => setActiveFilePinned(ref.pinned !== true)}>
+                    <IconPinOutline14 size={12} />
+                  </button>
+                )}
+                {ref.global !== true && (
                   <button type="button" className={css.fileRefClose}
-                    aria-label={t('composer.removeFileRef')} onClick={() => removeFileRef(ref.path)}>
+                    aria-label={t('composer.removeFileRef')}
+                    onClick={() => removeFileRef({ path: ref.path, lines: ref.lines })}>
                     ×
                   </button>
                 )}

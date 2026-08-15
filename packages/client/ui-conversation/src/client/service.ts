@@ -29,6 +29,17 @@ export interface FileRef {
   name: string
   /** Selected 1-based line range in the viewer, or null. */
   lines: { start: number; end: number } | null
+  /** True only on the leading global chip (the viewer's active file). */
+  global?: boolean
+  /** True on the global chip when pinned: frozen to this file, no longer following the viewer. */
+  pinned?: boolean
+}
+
+/** Two references are the same chip when path and line range both match. */
+function sameRefIdentity(
+  a: { path: string; lines: FileRef['lines'] }, b: { path: string; lines: FileRef['lines'] },
+): boolean {
+  return a.path === b.path && a.lines?.start === b.lines?.start && a.lines?.end === b.lines?.end
 }
 
 /** Compact `path:start-end` reference text (path alone without a range). */
@@ -52,21 +63,34 @@ export interface IConversation {
   /**
    * Set the preferred file context: the file the center viewer has open.
    * Every send prefaces its text with a compact reference so the model can
-   * locate it; the composer renders it as the leading reference chip.
+   * locate it; the composer renders it as the leading global chip. A pinned
+   * global chip is frozen and stays; otherwise the chip tracks the viewer
+   * (manual chips are never touched, even for the same path).
    * @param file - the active viewer file (with its selected line range), or
    * null when no tab is open.
    */
   setActiveFile(file: FileRef | null): void
   /**
-   * Append one pasted file reference to the composer chip row.
-   * @param ref - the parsed reference.
+   * Append one manually added file reference (pasted or "添加到对话") to the
+   * composer chip row. Chips are identified by path AND line range, so the
+   * same file at different lines yields distinct chips; the global chip is
+   * never a dedupe target.
+   * @param ref - the reference to add.
    */
   addFileRef(ref: FileRef): void
   /**
-   * Remove one pasted reference chip (the active-file chip is viewer-owned).
-   * @param path - the reference path to drop.
+   * Remove one manually added reference chip by its identity (path + line
+   * range). The global chip cannot be removed this way.
+   * @param ref - the identity of the chip to drop.
    */
-  removeFileRef(path: string): void
+  removeFileRef(ref: { path: string; lines: FileRef['lines'] }): void
+  /**
+   * Pin or unpin the leading global chip. Pinned, it freezes to its current
+   * file (kept across tab switches); unpinned, it resumes tracking the
+   * viewer's active file.
+   * @param pinned - the new pinned state.
+   */
+  setActiveFilePinned(pinned: boolean): void
   /**
    * Send a prompt into the caller scope's session (queued turn).
    * @param text - prompt text, sent verbatim as one text block.
@@ -133,6 +157,8 @@ export class ConversationController extends Service implements IConversation {
    * selected line range) plus any references pasted into the composer.
    */
   readonly fileRefs = createSnapshotStore<readonly FileRef[]>([])
+  /** The viewer's last reported active file, kept so an unpin can snap back. */
+  private lastActiveFile: FileRef | null = null
   private readonly draftAttachments = new Map<DraftAttachmentId, ComposerAttachment>()
   private readonly imageUrls = new Map<string, ImageUrlEntry>()
   private readonly imageGenerations = new Map<SessionId, number>()
@@ -175,48 +201,72 @@ export class ConversationController extends Service implements IConversation {
 
   /**
    * Set the preferred file context (the center viewer's active tab). The
-   * composer shows it as the leading reference chip; every send prefaces
-   * its text with the compact reference.
+   * composer shows it as the leading global chip; every send prefaces its
+   * text with the compact reference. A pinned global chip is retained
+   * untouched; an unpinned one tracks the viewer. Manual chips are never
+   * touched, even when they reference the same path.
    * @param file - the active viewer file (with its selected line range, if
    * any), or null when no tab is open.
    */
   setActiveFile(file: FileRef | null): void {
+    this.lastActiveFile = file
     const refs = this.fileRefs.getSnapshot()
+    if (refs[0]?.global === true && refs[0].pinned === true) return
     if (file === null) {
-      // Drop the leading active-file chip; pasted references survive.
-      this.fileRefs.set(refs.slice(1))
+      // Drop the global chip; manual references survive.
+      this.fileRefs.set(refs.filter(ref => ref.global !== true))
       return
     }
-    // The active file is always the leading chip: replace the old leading
-    // chip (never accumulate every opened tab) and drop a pasted duplicate
-    // of the same path.
-    this.fileRefs.set([file, ...refs.slice(1).filter(ref => ref.path !== file.path)])
+    this.fileRefs.set([{ ...file, global: true }, ...refs.filter(ref => ref.global !== true)])
   }
 
   /**
-   * Append one pasted file reference (a single-line path pasted into the
-   * composer) to the chip row, without inserting its text into the draft.
-   * @param ref - the parsed reference.
+   * Append one manually added file reference (pasted or "添加到对话") to the
+   * chip row, without inserting its text into the draft. Chips are
+   * identified by path AND line range: the same path at different lines is
+   * a different chip, and the global chip is never a dedupe target.
+   * @param ref - the reference to add.
    */
   addFileRef(ref: FileRef): void {
     const refs = this.fileRefs.getSnapshot()
-    const index = refs.findIndex(existing => existing.path === ref.path)
-    this.fileRefs.set(index === -1
-      ? [...refs, ref]
-      : refs.map((existing, position) => position === index ? ref : existing))
+    const manual = refs.filter(existing => existing.global !== true)
+    const index = manual.findIndex(existing => sameRefIdentity(existing, ref))
+    const next = index === -1 ? [...manual, ref] : manual.map((existing, position) => position === index ? ref : existing)
+    this.fileRefs.set([...refs.filter(existing => existing.global === true), ...next])
   }
 
   /**
-   * Remove one reference chip (the active-file chip cannot be removed; the
-   * viewer owns it).
-   * @param path - the reference path to drop.
+   * Remove one manually added reference chip by its identity (path + line
+   * range). The global chip is not removable.
+   * @param ref - the identity of the chip to drop.
    */
-  removeFileRef(path: string): void {
+  removeFileRef(ref: { path: string; lines: FileRef['lines'] }): void {
     const refs = this.fileRefs.getSnapshot()
-    if (refs[0]?.path === path) return
-    this.fileRefs.set(refs.filter(ref => ref.path !== path))
+    const index = refs.findIndex(existing => existing.global !== true && sameRefIdentity(existing, ref))
+    if (index === -1) return
+    this.fileRefs.set(refs.filter((_, position) => position !== index))
   }
 
+  /**
+   * Pin or unpin the leading global chip. Pinned, it freezes to its current
+   * file and is retained across tab switches; unpinned, it resumes tracking
+   * the viewer's active file (or disappears when no tab is open).
+   * @param pinned - the new pinned state.
+   */
+  setActiveFilePinned(pinned: boolean): void {
+    const refs = this.fileRefs.getSnapshot()
+    if (refs[0]?.global !== true) return
+    if (pinned) {
+      this.fileRefs.set(refs.map((existing, position) => position === 0 ? { ...existing, pinned: true } : existing))
+      return
+    }
+    const manual = refs.filter(existing => existing.global !== true)
+    if (this.lastActiveFile === null) {
+      this.fileRefs.set(manual)
+      return
+    }
+    this.fileRefs.set([{ ...this.lastActiveFile, global: true }, ...manual])
+  }
   /**
    * Submit ordered draft images with text through one host admission. When a
    * viewer file is open and the text does not already name it, the send is

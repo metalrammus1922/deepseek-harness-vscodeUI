@@ -207,6 +207,16 @@ export const IconChevronUpOutline14 = ({ size = 14, className }: IconProps) => (
   </svg>
 )
 
+/** ic_ds_pin_outline_14: a pushpin (the composer file-chip pin toggle). */
+export const IconPinOutline14 = ({ size = 14, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M9.33 5.25V2.33h0.58c0.32 0 0.58-0.26 0.58-0.58s-0.26-0.58-0.58-0.58H4.08c-0.32 0-0.58 0.26-0.58 0.58s0.26 0.58 0.58 0.58h0.58v2.92c0 0.97-0.78 1.75-1.75 1.75v1.17h3.48v4.08l0.58 0.58 0.58-0.58v-4.08h3.48v-1.17c-0.97 0-1.75-0.78-1.75-1.75z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 /** ic_ds_close_outline_16 */
 export const IconCloseOutline16 = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -533,10 +533,12 @@ export interface ComposerBarInjected {
     /** The file-reference chips (active viewer file + pasted references). */
     activeFile: ObservableSnapshot<readonly FileRef[]>
   }
-  /** Append one pasted file reference to the composer chip row. */
+  /** Append one manually added file reference (pasted or viewer "添加到对话"). */
   addFileRef: (ref: FileRef) => void
-  /** Remove one pasted reference chip (the active-file chip is viewer-owned). */
-  removeFileRef: (path: string) => void
+  /** Remove one manually added reference chip by identity (path + line range). */
+  removeFileRef: (ref: { path: string; lines: FileRef['lines'] }) => void
+  /** Pin/unpin the leading global file chip (freezes it across tab switches). */
+  setActiveFilePinned: (pinned: boolean) => void
 }
 
 /**

@@ -211,6 +211,7 @@ function mount(
           useActiveFile={bindSnapshotSelector(createSnapshotStore<readonly FileRef[]>([]))}
           addFileRef={vi.fn()}
           removeFileRef={vi.fn()}
+          setActiveFilePinned={vi.fn()}
           stop={stop}
           command={() => Promise.resolve(true)}
           t={t}
