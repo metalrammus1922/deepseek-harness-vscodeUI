@@ -52,13 +52,22 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
   const [saveError, setSaveError] = useState<string | null>(null)
   // Latest on-disk content of each tab, tracked by the external-change poll.
   const [disk, setDisk] = useState<Record<string, string>>({})
+  // Paths whose content is already cached in this session: switching back
+  // to one renders instantly instead of re-reading the disk (the 1s poll
+  // keeps the cached content fresh against external edits).
+  const cachedPathsRef = useRef<Set<string>>(new Set())
 
-  // Read the active file; a superseded tab aborts its in-flight read. A tab's
-  // draft is seeded only on its first load, so switching away and back keeps
-  // the working copy.
+  // Load the active file. A tab whose content is already cached switches
+  // instantly (no disk re-read, no loading flash); a fresh tab reads once
+  // and is added to the cache. The 1s poll keeps cached tabs fresh.
   useEffect(() => {
     if (active === null) {
       setPhase('idle')
+      setError(null)
+      return
+    }
+    if (cachedPathsRef.current.has(active.path)) {
+      setPhase('ready')
       setError(null)
       return
     }
@@ -67,6 +76,7 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
     setError(null)
     fsRead(active.path, controller.signal).then((file) => {
       if (controller.signal.aborted) return
+      cachedPathsRef.current.add(active.path)
       setSaved(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.content } : prev)
       setDrafts(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.content } : prev)
       setTruncated(prev => prev[active.path] === undefined ? { ...prev, [active.path]: file.truncated } : prev)
@@ -244,6 +254,7 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
   // discarded, mirroring the plain tab-close action).
   const closeTab = (path: string): void => {
     actions.closeFile(path)
+    cachedPathsRef.current.delete(path)
     const without = <T,>(record: Record<string, T>): Record<string, T> =>
       Object.fromEntries(Object.entries(record).filter(([key]) => key !== path))
     setDrafts(prev => without(prev))
