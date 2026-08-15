@@ -19,6 +19,9 @@ import css from './FileViewer.module.css'
 
 type Phase = 'idle' | 'loading' | 'ready' | 'error'
 
+/** External-change poll interval for the active file. */
+const FILE_POLL_MS = 3000
+
 /**
  * Render the open file tabs and the active file's content in a VS2019-Dark
  * CodeMirror editor with line-based selection for adding code to the AI
@@ -47,6 +50,8 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
   const [truncated, setTruncated] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // Latest on-disk content of each tab, tracked by the external-change poll.
+  const [disk, setDisk] = useState<Record<string, string>>({})
 
   // Read the active file; a superseded tab aborts its in-flight read. A tab's
   // draft is seeded only on its first load, so switching away and back keeps
@@ -76,9 +81,12 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
 
   const activeSaved = active === null ? undefined : saved[active.path]
   const activeDraft = active === null ? undefined : drafts[active.path]
+  const activeDisk = active === null ? undefined : disk[active.path]
   const activeTruncated = active === null ? false : truncated[active.path] === true
   const dirty = active !== null && activeSaved !== undefined && activeDraft !== undefined
     && activeDraft !== activeSaved
+  const externallyChanged = active !== null && activeDisk !== undefined && activeSaved !== undefined
+    && activeDisk !== activeSaved
 
   // Save the active tab's draft back to disk; success moves the saved base
   // forward so the tab turns clean.
@@ -95,6 +103,36 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
     } finally {
       setSaving(false)
     }
+  }
+
+  // Poll the active file's on-disk content so external edits (git, other
+  // editors) surface without a manual reload.
+  useEffect(() => {
+    if (active === null) return
+    const timer = setInterval(() => {
+      fsRead(active.path).then((file) => {
+        setDisk(prev => (prev[active.path] === file.content ? prev : { ...prev, [active.path]: file.content }))
+      }).catch(() => {})
+    }, FILE_POLL_MS)
+    return () => clearInterval(timer)
+  }, [active, fsRead])
+
+  // Adopt an external change silently when the tab is not locally dirty;
+  // a dirty tab keeps the editor content and shows the reload bar instead.
+  useEffect(() => {
+    if (active === null || activeDisk === undefined || activeSaved === undefined) return
+    if (activeDisk !== activeSaved && activeDraft === activeSaved) {
+      setSaved(prev => ({ ...prev, [active.path]: activeDisk }))
+      setDrafts(prev => ({ ...prev, [active.path]: activeDisk }))
+    }
+  }, [active, activeDisk, activeSaved, activeDraft])
+
+  // Discard local edits and load the on-disk version of the active tab.
+  const reloadFromDisk = (): void => {
+    if (active === null || activeDisk === undefined) return
+    setSaved(prev => ({ ...prev, [active.path]: activeDisk }))
+    setDrafts(prev => ({ ...prev, [active.path]: activeDisk }))
+    setSaveError(null)
   }
 
   // Ctrl/Cmd+S saves the active tab and never falls through to the browser's
@@ -246,13 +284,21 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
         ))}
         {tabs.length === 0 && <span className={css.tabsEmpty}>{t('viewer.tabsEmpty')}</span>}
       </div>
-      {(dirty || saving || saveError !== null || activeTruncated) && (
+      {(dirty || saving || saveError !== null || activeTruncated || externallyChanged) && (
         <div className={css.editorBar}>
-          <span className={saveError !== null ? css.editorBarError : activeTruncated ? css.editorBarWarning : css.editorBarInfo}>
+          <span className={saveError !== null ? css.editorBarError
+            : activeTruncated || externallyChanged ? css.editorBarWarning
+              : css.editorBarInfo}>
             {saveError !== null ? `${t('viewer.saveFailed')} ${saveError}`
               : activeTruncated ? t('viewer.truncatedNoEdit')
-                : t('viewer.modified')}
+                : externallyChanged ? t('viewer.diskChanged')
+                  : t('viewer.modified')}
           </span>
+          {externallyChanged && (
+            <button type="button" className={css.reloadButton} onClick={reloadFromDisk}>
+              {t('viewer.reload')}
+            </button>
+          )}
           {!activeTruncated && (
             <button type="button" className={css.saveButton} disabled={!dirty || saving}
               title={t('viewer.saveShortcut')} onClick={() => void save()}>

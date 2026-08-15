@@ -176,6 +176,22 @@
   cursor: default;
 }
 
+.reloadButton {
+  flex: none;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--vs-tab-border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vs-editor-fg);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reloadButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .selectionBar {
   flex: none;
   display: flex;

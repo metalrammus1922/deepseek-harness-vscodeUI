@@ -24,7 +24,7 @@ function basenameOf(path: string): string {
   return path.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? path
 }
 
-export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: FileTreeProps) {
+export function FileTree({ useStore, useWorkspaces, useSessions, actions, fsList, t }: FileTreeProps) {
   const workspaceItems = useWorkspaces(s => s.items)
   const sessionCwd = useSessions((s) => {
     const current = s.current
@@ -38,7 +38,10 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
   const [loading, setLoading] = useState<ReadonlySet<string>>(() => new Set())
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [selected, setSelected] = useState<string | null>(null)
+  // The active file is the shared explorer-store selection: the viewer's tab
+  // strip writes it (activateFile), so clicking a tab highlights and scrolls
+  // the tree row here.
+  const activePath = useStore(s => s.activePath)
   const [refreshing, setRefreshing] = useState(false)
   const generation = useRef(0)
 
@@ -82,7 +85,6 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
     // markers behind: their results are dropped by the generation guard, so
     // the marker set is reset wholesale.
     setLoading(new Set())
-    setSelected(null)
     if (root === undefined) return
     setRefreshing(true)
     const gen = generation.current
@@ -117,6 +119,9 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
     }
   }, [expanded, children, loading, errors, listLevel])
 
+  /** Auto-refresh interval: external file changes (git, other editors) show up without a manual refresh. */
+  const AUTO_REFRESH_MS = 3000
+
   /** Expand/collapse one directory; first expansion lists its children. */
   const toggle = useCallback((path: string) => {
     setExpanded((prev) => {
@@ -129,6 +134,43 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
       listLevel(path)
     }
   }, [expanded, children, loading, listLevel])
+
+  // Keep the active file's row in view when the selection changes (a tab
+  // click in the viewer). Only rows currently rendered can be scrolled; the
+  // tree re-scans when expansion changes add the row.
+  const bodyRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (activePath === null) return
+    const rows = bodyRef.current?.querySelectorAll('[data-tree-path]')
+    if (rows === undefined) return
+    for (const row of rows) {
+      if (row.getAttribute('data-tree-path') === activePath) {
+        row.scrollIntoView({ block: 'nearest' })
+        return
+      }
+    }
+  }, [activePath, children])
+
+  // Re-list the root and every expanded directory on an interval, preserving
+  // expansion state; a manual refresh (generation bump) supersedes stale polls.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const gen = generation.current
+      if (root !== undefined) {
+        fsList(root).then((listing) => {
+          if (gen !== generation.current) return
+          setChildren(prev => ({ ...prev, '': listing.entries }))
+        }).catch(() => {})
+      }
+      for (const path of expanded) {
+        fsList(path).then((listing) => {
+          if (gen !== generation.current) return
+          setChildren(prev => ({ ...prev, [path]: listing.entries }))
+        }).catch(() => {})
+      }
+    }, AUTO_REFRESH_MS)
+    return () => clearInterval(timer)
+  }, [root, expanded, fsList])
 
   /** Recursive rows for one level. */
   const renderRows = (entries: LevelRows | undefined, depth: number): ReactNode => {
@@ -145,12 +187,12 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
             className={css.row}
             style={{ paddingLeft: `${8 + depth * 14}px` }}
             aria-expanded={isDirectory ? isOpen : undefined}
-            aria-selected={selected === entry.path}
+            aria-selected={activePath === entry.path}
+            data-tree-path={entry.path}
             onClick={() => {
               if (isDirectory) {
                 toggle(entry.path)
               } else {
-                setSelected(entry.path)
                 actions.openFile({ path: entry.path, name: entry.name })
               }
             }}
@@ -190,7 +232,7 @@ export function FileTree({ useWorkspaces, useSessions, actions, fsList, t }: Fil
           <IconRefreshOutline16 size={14} />
         </button>
       </div>
-      <div className={css.body}>
+      <div className={css.body} ref={bodyRef}>
         {root === undefined
           ? <div className={css.empty}>{t('files.noWorkspace')}</div>
           : errors[''] !== undefined
