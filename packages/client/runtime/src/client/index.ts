@@ -192,11 +192,11 @@ declare module '@deepseek-ai/cordis' {
     'explorer/active-file'(payload: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
     /**
      * A composer chip was clicked: the explorer should open the referenced
-     * file in the center viewer.
+     * file in the center viewer and reveal its line range.
      * @mode emit
-     * @param payload - the referenced file path.
+     * @param payload - the referenced file path and its line range (null for the whole file).
      */
-    'explorer/open-file-request'(payload: { path: string }): void
+    'explorer/open-file-request'(payload: { path: string; lines: { start: number; end: number } | null }): void
   }
   interface Context {
     slots: import('./slots.ts').SlotRegistry

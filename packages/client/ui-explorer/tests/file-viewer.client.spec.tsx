@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 // Type-only: pull the plugin's LocaleNamespaceMap merge ('explorer') into this program.
@@ -16,7 +17,11 @@ import { zh } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 // The viewer persists its tabs/content in localStorage; isolated per test.
-beforeEach(() => localStorage.clear())
+// jsdom has no layout: the CodeMirror line-reveal effect calls scrollIntoView.
+beforeEach(() => {
+  localStorage.clear()
+  Element.prototype.scrollIntoView = () => {}
+})
 
 const t: FileViewerProps['t'] = makeTranslate(zh, commonZh)
 
@@ -176,5 +181,19 @@ describe('FileViewer', () => {
       expect(m.store.getSnapshot().tabs).toEqual([])
     })
     expect(screen.getByText('在左侧文件树中点击一个文件以查看其内容')).toBeTruthy()
+  })
+
+  it('jumps to the chip line range when an open request arrives', async () => {
+    const pendingOpen = createSnapshotStore<{ path: string; lines: { start: number; end: number } | null; seq: number } | null>(null)
+    const m = mount({ usePendingOpen: bindSnapshotSelector(pendingOpen) as never })
+    const view = await open(m, '/w/a.ts', 'a.ts')
+    // The editor holds 'line one\nline two\n'; a chip open of line 2 selects
+    // that line and scrolls it into view.
+    pendingOpen.set({ path: '/w/a.ts', lines: { start: 2, end: 2 }, seq: 1 })
+    await waitFor(() => {
+      const sel = view.state.selection.main
+      expect(view.state.doc.lineAt(sel.from).number).toBe(2)
+      expect(sel.to > sel.from).toBe(true)
+    })
   })
 })

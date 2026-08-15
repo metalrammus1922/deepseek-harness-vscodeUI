@@ -159,6 +159,9 @@ export function FileTree({ useStore, useWorkspaces, useSessions, usePendingOpen,
   useEffect(() => {
     if (pendingOpen === null) return
     actions.openFile({ path: pendingOpen.path, name: basenameOf(pendingOpen.path) })
+    // A chip click also syncs the tree: highlight and scroll to the row,
+    // exactly like a viewer tab click.
+    actions.requestReveal(pendingOpen.path)
   }, [pendingOpen, actions])
 
   // Re-list the root and every expanded directory on an interval, preserving

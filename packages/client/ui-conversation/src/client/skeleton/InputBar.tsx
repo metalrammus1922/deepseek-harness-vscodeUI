@@ -739,7 +739,7 @@ export function InputBar({
                 ? `g:${ref.path}`
                 : `m:${ref.path}:${ref.lines === null ? '' : `${ref.lines.start}-${ref.lines.end}`}`}
               role="listitem" className={css.fileRefChip} title={ref.path}
-              onClick={() => openFileRef(ref.path)}>
+              onClick={() => openFileRef(ref)}>
                 <IconCodeOutline16 size={12} className={css.fileRefIcon} />
                 <span className={css.fileRefName}>{ref.name}</span>
                 {ref.lines !== null && (

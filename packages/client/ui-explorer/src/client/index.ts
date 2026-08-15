@@ -77,11 +77,11 @@ export function apply(ctx: ClientContext): void {
   // The store instance is framework-owned, so the request rides a
   // registrant-private observable (the hooks compartment) that the file
   // tree reads and turns into an openFile action.
-  const pendingOpen = createSnapshotStore<{ path: string; seq: number } | null>(null)
+  const pendingOpen = createSnapshotStore<{ path: string; lines: { start: number; end: number } | null; seq: number } | null>(null)
   ctx.effect(() => {
-    const offOpen = ctx.on('explorer/open-file-request', ({ path }) => {
+    const offOpen = ctx.on('explorer/open-file-request', ({ path, lines }) => {
       const previous = pendingOpen.getSnapshot()
-      pendingOpen.set({ path, seq: (previous?.seq ?? 0) + 1 })
+      pendingOpen.set({ path, lines, seq: (previous?.seq ?? 0) + 1 })
     })
     return offOpen
   }, 'ui-explorer: composer chip open')

@@ -378,7 +378,7 @@ export function apply(ctx: Context): void {
         setActiveFilePinned: pinned => conversation.setActiveFilePinned(pinned),
         // The explorer owns the viewer store: the composer only announces the
         // intent, exactly like the viewer's add-to-chat bridge.
-        openFileRef: path => ctx.emit('explorer/open-file-request', { path }),
+        openFileRef: ref => ctx.emit('explorer/open-file-request', { path: ref.path, lines: ref.lines }),
       }
     },
   }, InputBar)

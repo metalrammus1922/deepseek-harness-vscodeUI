@@ -539,8 +539,8 @@ export interface ComposerBarInjected {
   removeFileRef: (ref: { path: string; lines: FileRef['lines'] }) => void
   /** Pin/unpin the leading global file chip (freezes it across tab switches). */
   setActiveFilePinned: (pinned: boolean) => void
-  /** Open a referenced file in the center viewer (a chip click). */
-  openFileRef: (path: string) => void
+  /** Open a referenced file in the center viewer (a chip click), revealing its line range. */
+  openFileRef: (ref: FileRef) => void
 }
 
 /**

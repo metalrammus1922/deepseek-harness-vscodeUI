@@ -36,7 +36,7 @@ const FILE_POLL_MS = 1000
  * @returns the viewer element tree.
  */
 export function FileViewer({
-  useStore, useWorkspaces, useSessions, actions, fsRead, fsWrite, addFileRef, onActiveFile, t,
+  useStore, useWorkspaces, useSessions, usePendingOpen, actions, fsRead, fsWrite, addFileRef, onActiveFile, t,
 }: FileViewerProps) {
   const tabs = useStore(s => s.tabs)
   const activePath = useStore(s => s.activePath)
@@ -299,6 +299,27 @@ export function FileViewer({
       view.dispatch({ changes: { from: 0, to: current.length, insert: activeDraft } })
     }
   }, [active?.path, activeDraft, activeTruncated])
+
+  // A composer chip click with a line range jumps the editor to those lines:
+  // select the range and scroll it into view once the file is active (the
+  // seq guard makes repeated clicks on the same chip re-reveal).
+  const pendingOpen = usePendingOpen(s => s)
+  const lastPendingSeqRef = useRef(0)
+  useEffect(() => {
+    if (pendingOpen === null) return
+    const view = cmRef.current
+    if (view === null || active === null || active.path !== pendingOpen.path) return
+    if (pendingOpen.lines === null || pendingOpen.seq === lastPendingSeqRef.current) return
+    lastPendingSeqRef.current = pendingOpen.seq
+    const startLine = Math.min(pendingOpen.lines.start, view.state.doc.lines)
+    const endLine = Math.min(pendingOpen.lines.end, view.state.doc.lines)
+    const from = view.state.doc.line(startLine).from
+    const to = view.state.doc.line(endLine).to
+    view.dispatch({
+      selection: { anchor: from, head: to },
+      effects: EditorView.scrollIntoView(from, { y: 'center' }),
+    })
+  }, [pendingOpen, active, actions])
 
   /** Reference the active file's selected lines in the chat composer as a chip (`path:start-end`). */
   const addSelectionToChat = (): void => {

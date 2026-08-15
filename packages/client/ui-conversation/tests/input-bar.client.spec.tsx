@@ -95,7 +95,7 @@ interface BenchOptions {
   addFileRef?: (ref: FileRef) => void
   setActiveFilePinned?: (pinned: boolean) => void
   removeFileRef?: (ref: { path: string; lines: FileRef['lines'] }) => void
-  openFileRef?: (path: string) => void
+  openFileRef?: (ref: FileRef) => void
 }
 
 /** One pending queue row (the runtime snapshot shape, as the dock tests build it). */
@@ -1376,7 +1376,7 @@ describe('command launcher chrome and control seats', () => {
       setActiveFilePinned,
     })
     fireEvent.click(view.getByText('b.ts'))
-    expect(openFileRef).toHaveBeenCalledWith('/w/b.ts')
+    expect(openFileRef).toHaveBeenCalledWith({ path: '/w/b.ts', name: 'b.ts', lines: null })
     // The pin and close buttons must not leak their click into the chip open.
     fireEvent.click(view.getByRole('button', { name: '固定当前文件，切换标签时保留' }))
     fireEvent.click(view.getByRole('button', { name: '移除引用' }))

@@ -40,7 +40,7 @@ export interface ExplorerInjected {
    */
   hooks: {
     /** One open-request (seq bumps so repeated clicks on the same path fire). */
-    pendingOpen: ObservableSnapshot<{ path: string; seq: number } | null>
+    pendingOpen: ObservableSnapshot<{ path: string; lines: { start: number; end: number } | null; seq: number } | null>
   }
 }
 
