@@ -3,10 +3,10 @@
  * from the shared explorer store, with the active tab's text read through
  * ctx.fs.read and written back through ctx.fs.write. The editor is a
  * CodeMirror 6 instance themed as VS2019 Dark with per-extension syntax
- * highlighting; select code and press "添加到对话" to append a `file
- * start-end` reference plus the selection to the AI chat composer; edit
- * in place and save with the toolbar button or Ctrl+S. Root-scoped — no
- * session needed to view files.
+ * highlighting; select code and press "添加到对话" to add a `path:start-end`
+ * reference chip to the AI chat composer (the model reads the file from
+ * the reference); edit in place and save with the toolbar button or
+ * Ctrl+S. Root-scoped — no session needed to view files.
  */
 import { useEffect, useRef, useState } from 'react'
 import { EditorState } from '@codemirror/state'
@@ -24,15 +24,15 @@ const FILE_POLL_MS = 1000
 
 /**
  * Render the open file tabs and the active file's content in a VS2019-Dark
- * CodeMirror editor with line-based selection for adding code to the AI
- * chat and in-place editing saved back through fsWrite. Each open tab keeps
- * its own draft, so switching tabs never loses unsaved edits; truncated
- * reads stay read-only (saving them would overwrite the file with the cut
- * content).
+ * CodeMirror editor with line-based selection for referencing code in the
+ * AI chat and in-place editing saved back through fsWrite. Each open tab
+ * keeps its own draft, so switching tabs never loses unsaved edits;
+ * truncated reads stay read-only (saving them would overwrite the file
+ * with the cut content).
  * @param props - composed slot props (store share + injected verbs + copy).
  * @returns the viewer element tree.
  */
-export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onActiveFile, t }: FileViewerProps) {
+export function FileViewer({ useStore, actions, fsRead, fsWrite, addFileRef, onActiveFile, t }: FileViewerProps) {
   const tabs = useStore(s => s.tabs)
   const activePath = useStore(s => s.activePath)
   const active = tabs.find(tab => tab.path === activePath) ?? null
@@ -238,21 +238,10 @@ export function FileViewer({ useStore, actions, fsRead, fsWrite, addToChat, onAc
     }
   }, [active?.path, activeDraft, activeTruncated])
 
-  /** Assemble the `name start-end` reference plus the selected lines and send it to the composer. */
+  /** Reference the active file's selected lines in the chat composer as a chip (`path:start-end`). */
   const addSelectionToChat = (): void => {
-    const view = cmRef.current
-    if (view === null || active === null || selection === null) return
-    const { from, to } = view.state.selection.main
-    const text = view.state.doc.sliceString(from, to)
-    const body = [
-      selection.start === selection.end
-        ? `${active.name} ${selection.start}`
-        : `${active.name} ${selection.start}-${selection.end}`,
-      active.path,
-      text,
-    ].join('\n')
-    addToChat(body)
-    setSelection(null)
+    if (active === null || selection === null) return
+    addFileRef({ path: active.path, name: active.name, lines: { start: selection.start, end: selection.end } })
   }
 
   // Close a tab and drop its per-tab editor state (unsaved drafts are

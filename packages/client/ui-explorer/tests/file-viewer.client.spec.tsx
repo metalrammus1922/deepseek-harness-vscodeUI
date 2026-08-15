@@ -39,7 +39,7 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
     fsWrite,
     gitStatus,
     gitScan,
-    addToChat: vi.fn(),
+    addFileRef: vi.fn(),
     onActiveFile: vi.fn(),
     t,
     ...overrides,
@@ -115,5 +115,23 @@ describe('FileViewer', () => {
     expect(cmView(m.view.container).state.facet(EditorState.readOnly)).toBe(true)
     expect(screen.getByText('文件过大，已截断显示，无法编辑和保存')).toBeTruthy()
     expect(screen.queryByRole('button', { name: '保存' })).toBeNull()
+  })
+
+  it('“添加到对话” references the selected lines as a chip, not as draft text', async () => {
+    const m = mount()
+    const view = await open(m, '/w/a.ts', 'a.ts')
+    expect(m.props.addFileRef).not.toHaveBeenCalled()
+
+    // Select lines 1-2; the selection bar offers the add-to-chat action.
+    view.dispatch({ selection: { anchor: 0, head: 'line one\nline two'.length } })
+    await waitFor(() => expect(screen.getByRole('button', { name: '添加到对话' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: '添加到对话' }))
+
+    // The action adds a file reference chip (path + line range) and never
+    // pastes filename/line numbers or source text into the composer.
+    expect(m.props.addFileRef).toHaveBeenCalledTimes(1)
+    expect(m.props.addFileRef).toHaveBeenCalledWith({ path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 2 } })
+    // The selection stays so the chip keeps its line range.
+    expect(screen.getByRole('button', { name: '添加到对话' })).toBeTruthy()
   })
 })

@@ -29,8 +29,8 @@ export interface ExplorerInjected {
   gitStatus(cwd: string, signal?: AbortSignal): Promise<GitStatus>
   /** Walk a directory tree and report every git repository under it (flat), each with its uncommitted files. */
   gitScan(root: string, signal?: AbortSignal): Promise<GitScan>
-  /** Append a code selection reference to the AI chat composer (no-op without a session). */
-  addToChat(text: string): void
+  /** Reference the viewer's active file (with its selected lines) in the AI chat composer as a chip. */
+  addFileRef(ref: { path: string; name: string; lines: { start: number; end: number } | null }): void
   /** Report the viewer's active tab (with its selected line range) so the chat treats it as preferred context. */
   onActiveFile(file: { path: string; name: string; lines: { start: number; end: number } | null } | null): void
 }

@@ -172,13 +172,14 @@ declare module '@deepseek-ai/cordis' {
      */
     'connection/reset'(): void
     /**
-     * The center file viewer appended a code selection to the AI chat
-     * composer. The conversation layer owns the target: the current
-     * session's draft.
+     * The center file viewer's "添加到对话" action: reference the active
+     * file's selected lines in the AI chat composer as a file chip. The
+     * conversation layer owns the chip store; this event carries the
+     * reference data.
      * @mode emit
-     * @param payload - the assembled reference + code text.
+     * @param payload - the referenced file (with its selected 1-based line range, if any).
      */
-    'explorer/add-to-chat'(payload: { text: string }): void
+    'explorer/add-file-ref'(payload: { path: string; name: string; lines: { start: number; end: number } | null }): void
     /**
      * The file currently open in the center viewer (null when none). The
      * conversation layer keeps it as the preferred file context for sends,

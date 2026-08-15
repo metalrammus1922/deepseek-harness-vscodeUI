@@ -451,20 +451,12 @@ export function apply(ctx: Context): void {
   // this service remains only where conversation actions are required.
   ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
 
-  // Explorer bridge: the center file viewer appends code selections to the
-  // current session's composer, and its active tab becomes the preferred
-  // file context prefixed to every send.
+  // Explorer bridge: the center file viewer's "添加到对话" action adds the
+  // active file (with its selected lines) as a reference chip, and its
+  // active tab becomes the preferred file context prefixed to every send.
   ctx.effect(() => {
-    const offAdd = ctx.on('explorer/add-to-chat', ({ text }) => {
-      const sessions = ctx.get('sessions')
-      if (sessions === undefined) return
-      const current = sessions.list.getSnapshot().current
-      if (current === undefined) return
-      const scoped = sessions.scope(current)
-      if (scoped === undefined) return
-      const input = concreteConversation(ctx).input.for(scoped)
-      const draft = input.state.getSnapshot().draft
-      input.setDraft(draft === '' ? text : draft + '\n' + text)
+    const offAdd = ctx.on('explorer/add-file-ref', (ref) => {
+      concreteConversation(ctx).addFileRef(ref)
     })
     const offActive = ctx.on('explorer/active-file', (file) => {
       concreteConversation(ctx).setActiveFile(file)
