@@ -203,12 +203,12 @@ export class ConversationController extends Service implements IConversation {
 
   /**
    * Set the preferred file context (the center viewer's active tab). The
-   * composer shows it as the leading global chip; every send prefaces its
-   * text with the compact reference. A pinned global chip is retained
-   * untouched; an unpinned one tracks the viewer. Manual chips are never
-   * touched, even when they reference the same path.
-   * @param file - the active viewer file (with its selected line range, if
-   * any), or null when no tab is open.
+   * composer shows it as the leading global chip referencing the whole file
+   * (the selection line range lives only on manual chips); every send
+   * prefaces its text with the compact reference. A pinned global chip is
+   * retained untouched; an unpinned one tracks the viewer. Manual chips are
+   * never touched, even when they reference the same path.
+   * @param file - the active viewer file, or null when no tab is open.
    */
   setActiveFile(file: FileRef | null): void {
     this.lastActiveFile = file
@@ -219,7 +219,10 @@ export class ConversationController extends Service implements IConversation {
       this.fileRefs.set(refs.filter(ref => ref.global !== true))
       return
     }
-    this.fileRefs.set([{ ...file, global: true }, ...refs.filter(ref => ref.global !== true)])
+    // The global chip references the whole file (like a global variable that
+    // always holds the current tab); the selected line range lives only on
+    // manual chips, so the lines are dropped here.
+    this.fileRefs.set([{ ...file, global: true, lines: null }, ...refs.filter(ref => ref.global !== true)])
   }
 
   /**
@@ -267,7 +270,7 @@ export class ConversationController extends Service implements IConversation {
       this.fileRefs.set(manual)
       return
     }
-    this.fileRefs.set([{ ...this.lastActiveFile, global: true }, ...manual])
+    this.fileRefs.set([{ ...this.lastActiveFile, global: true, lines: null }, ...manual])
   }
   /**
    * Submit ordered draft images with text through one host admission. When a

@@ -33,9 +33,14 @@ async function bench() {
 }
 
 describe('ConversationController file-reference chips', () => {
-  it('tracks the active viewer file as the leading global chip, replacing it on tab switches', async () => {
+  it('tracks the active viewer file as the leading whole-file global chip, replacing it on tab switches', async () => {
     const b = await bench()
+    // The global chip references the complete file: the selection lines the
+    // viewer reports are dropped (they live only on manual chips).
     b.root.setActiveFile({ path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 } })
+    expect(b.root.fileRefs.getSnapshot()).toEqual([
+      { path: '/w/a.ts', name: 'a.ts', lines: null, global: true },
+    ])
     b.root.setActiveFile({ path: '/w/b.ts', name: 'b.ts', lines: null })
     expect(b.root.fileRefs.getSnapshot()).toEqual([
       { path: '/w/b.ts', name: 'b.ts', lines: null, global: true },
@@ -49,7 +54,7 @@ describe('ConversationController file-reference chips', () => {
     b.root.setActiveFilePinned(true)
     b.root.setActiveFile({ path: '/w/b.ts', name: 'b.ts', lines: null })
     expect(b.root.fileRefs.getSnapshot()).toEqual([
-      { path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true, pinned: true },
+      { path: '/w/a.ts', name: 'a.ts', lines: null, global: true, pinned: true },
     ])
     // Unpinning snaps the global chip back to the current viewer file.
     b.root.setActiveFilePinned(false)
@@ -115,7 +120,7 @@ describe('ConversationController file-reference chips', () => {
     // VSCode clears the composer references after sending; the global chip
     // stays because it tracks the viewer's active file.
     expect(b.root.fileRefs.getSnapshot()).toEqual([
-      { path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true },
+      { path: '/w/a.ts', name: 'a.ts', lines: null, global: true },
     ])
     await b.runtime.dispose()
   })
