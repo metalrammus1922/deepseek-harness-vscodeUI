@@ -139,15 +139,6 @@ export class ConversationController extends Service implements IConversation {
   private readonly createdImageUrls = new Set<string>()
   private disposed = false
 
-  private upsertRef(ref: FileRef): void {
-    const refs = this.fileRefs.getSnapshot()
-    const index = refs.findIndex(existing => existing.path === ref.path)
-    if (index === 0) {
-      this.fileRefs.set([ref, ...refs.slice(1)])
-      return
-    }
-    this.fileRefs.set(index === -1 ? [ref, ...refs] : [...refs.slice(0, index), ref, ...refs.slice(index + 1)])
-  }
 
   /**
    * @param ctx - owning root context (the plugin apply context; the service
@@ -190,13 +181,16 @@ export class ConversationController extends Service implements IConversation {
    * any), or null when no tab is open.
    */
   setActiveFile(file: FileRef | null): void {
+    const refs = this.fileRefs.getSnapshot()
     if (file === null) {
-      const [active, ...rest] = this.fileRefs.getSnapshot()
-      if (active === undefined) return
-      this.fileRefs.set(rest)
+      // Drop the leading active-file chip; pasted references survive.
+      this.fileRefs.set(refs.slice(1))
       return
     }
-    this.upsertRef(file)
+    // The active file is always the leading chip: replace the old leading
+    // chip (never accumulate every opened tab) and drop a pasted duplicate
+    // of the same path.
+    this.fileRefs.set([file, ...refs.slice(1).filter(ref => ref.path !== file.path)])
   }
 
   /**
