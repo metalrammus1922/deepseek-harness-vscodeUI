@@ -155,6 +155,8 @@ export class ConversationController extends Service implements IConversation {
    * The file-reference chips shown above the composer and prefixed to
    * every send as context: the center viewer's active file (with its
    * selected line range) plus any references pasted into the composer.
+   * Manual chips clear after a successful send (VSCode behavior); the
+   * global chip tracks the viewer until it is pinned.
    */
   readonly fileRefs = createSnapshotStore<readonly FileRef[]>([])
   /** The viewer's last reported active file, kept so an unpin can snap back. */
@@ -271,7 +273,8 @@ export class ConversationController extends Service implements IConversation {
    * Submit ordered draft images with text through one host admission. When a
    * viewer file is open and the text does not already name it, the send is
    * prefaced with the file path so the model treats it as the preferred
-   * context.
+   * context. A successful send clears the manual reference chips (VSCode
+   * clears the composer input after sending); the global chip stays.
    * @param session - target session.
    * @param text - serialized prompt text.
    * @param imageIds - ordered draft-local attachment ids.
@@ -293,6 +296,10 @@ export class ConversationController extends Service implements IConversation {
     const result = await session.prompt(content, mode)
     if (!result.ok) throw new Error(`conversation.send failed: ${result.error.code}: ${result.error.message}`)
     this.releaseDraftImages(attachments)
+    // VSCode clears the composer input after a send: the manual reference
+    // chips go with the draft, while the global chip stays (it tracks the
+    // viewer's active file). Failure restores both, so nothing is lost.
+    this.fileRefs.set(this.fileRefs.getSnapshot().filter(ref => ref.global === true))
   }
 
   /**

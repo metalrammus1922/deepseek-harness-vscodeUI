@@ -4,7 +4,7 @@
 // identified by path + line range, coexist with the global chip, and are
 // removed only by identity.
 import { makeTranslate, SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ComposerBlockRegistry } from '../src/client/input/blocks.ts'
 import { InputHub } from '../src/client/input/hub.ts'
 import { ConversationController } from '../src/client/service.ts'
@@ -12,6 +12,14 @@ import { zh } from '../src/client/locales.ts'
 
 async function bench() {
   const runtime = await SlotTestRuntime.create()
+  const prompt = vi.fn(() => Promise.resolve({ ok: true as const, value: { accepted: true as const } }))
+  const updateQueue = vi.fn(() => Promise.resolve({ ok: true as const, value: { accepted: true as const } }))
+  const cancel = vi.fn(() => Promise.resolve({ ok: true as const, value: { accepted: true as const } }))
+  const loadOlder = vi.fn(() => Promise.resolve())
+  await runtime.sessions.add({
+    id: 's1',
+    session: { prompt, updateQueue, cancel, loadOlder },
+  })
   const hub = new InputHub(runtime.ctx, makeTranslate(zh, {}))
   const fiber = runtime.ctx.plugin(ConversationController, {
     input: hub,
@@ -19,7 +27,9 @@ async function bench() {
   })
   await fiber.await()
   const root = runtime.ctx.get('conversation') as ConversationController
-  return { runtime, root }
+  const scoped = runtime.sessions.scope('s1')!.get('conversation') as ConversationController
+  const session = runtime.sessions.binding('s1')!.session
+  return { runtime, root, scoped, session, prompt }
 }
 
 describe('ConversationController file-reference chips', () => {
@@ -92,6 +102,20 @@ describe('ConversationController file-reference chips', () => {
     b.root.setActiveFile(null)
     expect(b.root.fileRefs.getSnapshot()).toEqual([
       { path: '/w/b.ts', name: 'b.ts', lines: { start: 1, end: 2 } },
+    ])
+    await b.runtime.dispose()
+  })
+
+  it('clears manual chips after a successful send but keeps the global chip', async () => {
+    const b = await bench()
+    b.root.setActiveFile({ path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 } })
+    b.root.addFileRef({ path: '/w/b.ts', name: 'b.ts', lines: { start: 1, end: 10 } })
+    await b.scoped.sendSession(b.session, 'hello', [], 'queue')
+    expect(b.prompt).toHaveBeenCalledOnce()
+    // VSCode clears the composer references after sending; the global chip
+    // stays because it tracks the viewer's active file.
+    expect(b.root.fileRefs.getSnapshot()).toEqual([
+      { path: '/w/a.ts', name: 'a.ts', lines: { start: 1, end: 10 }, global: true },
     ])
     await b.runtime.dispose()
   })
