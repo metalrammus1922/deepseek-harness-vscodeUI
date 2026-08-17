@@ -15,13 +15,11 @@ export const EXPLORER_STORAGE_KEY = 'dsh-vscodeui.explorer.v1'
 /** Per-file content budget: larger files stay on disk and reload on demand. */
 const FILE_CHAR_CAP = 200_000
 
-/** One cached file's editor state (on-disk base, working draft, truncation). */
+/** One cached file's viewer state (read-only content + truncation). */
 export interface PersistedFileState {
-  /** On-disk base text at the last read/save. */
-  saved: string
-  /** The working draft (may hold unsaved edits). */
-  draft: string
-  /** Whether the read was truncated (the tab is then read-only). */
+  /** The file's text as last read from disk. */
+  text: string
+  /** Whether the read was truncated (a notice shows in the viewer). */
   truncated: boolean
 }
 
@@ -63,7 +61,7 @@ export function loadExplorerState(): PersistedExplorer | null {
  */
 export function saveExplorerState(state: PersistedExplorer): void {
   const files = Object.fromEntries(
-    Object.entries(state.files).filter(([, file]) => file.draft.length <= FILE_CHAR_CAP),
+    Object.entries(state.files).filter(([, file]) => file.text.length <= FILE_CHAR_CAP),
   )
   try {
     window.localStorage.setItem(EXPLORER_STORAGE_KEY, JSON.stringify({ ...state, files }))

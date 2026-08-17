@@ -58,7 +58,6 @@ export function apply(ctx: ClientContext): void {
   const injected = (): ExplorerInjected => ({
     fsList: (path, signal) => ctx.fs.list(path, signal),
     fsRead: (path, signal) => ctx.fs.read(path, signal),
-    fsWrite: (path, content, signal) => ctx.fs.write(path, content, signal),
     gitStatus: (cwd, signal) => ctx.git.status(cwd, signal),
     gitScan: (root, signal) => ctx.git.scan(root, signal),
     // The conversation layer owns the composer chip store: this plugin only

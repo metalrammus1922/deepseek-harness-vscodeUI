@@ -34,7 +34,6 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
   const store = createExplorerStore().create()
   const fsList = vi.fn(async (path: string) => ({ path, entries: [], truncated: false }))
   const fsRead = vi.fn(async (path: string) => ({ path, content: 'line one\nline two\n', truncated: false }))
-  const fsWrite = vi.fn(async (path: string) => ({ path }))
   const gitStatus = vi.fn(async () => ({ isRepo: false, root: null, branch: null, entries: [], ahead: 0, behind: 0 }))
   const gitScan = vi.fn(async (root: string) => ({ root, repos: [], truncated: false }))
   const props: FileViewerProps = {
@@ -44,7 +43,6 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
     actions: store.actions,
     fsList,
     fsRead,
-    fsWrite,
     gitStatus,
     gitScan,
     addFileRef: vi.fn(),
@@ -54,7 +52,7 @@ function mount(overrides: Partial<FileViewerProps> = {}) {
     ...overrides,
   }
   const view = render(<FileViewer {...props} />)
-  return { view, props, store, fsRead, fsWrite }
+  return { view, props, store, fsRead }
 }
 
 function cmContent(container: HTMLElement): HTMLElement {
@@ -78,52 +76,53 @@ async function open(m: ReturnType<typeof mount>, path: string, name: string) {
 }
 
 describe('FileViewer', () => {
-  it('loads a file into CodeMirror, edits it, marks the tab dirty, and saves through fsWrite', async () => {
+  it('renders a loaded file read-only with syntax-highlighting ready', async () => {
     const m = mount()
     const view = await open(m, '/w/a.ts', 'a.ts')
     expect(view.state.doc.toString()).toBe('line one\nline two\n')
-    expect(m.fsWrite).not.toHaveBeenCalled()
-
-    // User edit through the CodeMirror API mirrors a real keystroke.
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: 'line one\nCHANGED\n' } })
-    // Dirty state surfaces on the tab and in the editor bar.
+    expect(view.state.facet(EditorState.readOnly)).toBe(true)
+    // Read-only guards the file: no editor bar, no dirty marker, no save path.
     expect(screen.getByText('a.ts')).toBeTruthy()
-    await waitFor(() => expect(screen.getByTitle('有未保存的更改')).toBeTruthy())
-    expect(screen.getByRole('button', { name: '保存' })).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: '保存' }))
-    await waitFor(() => expect(m.fsWrite).toHaveBeenCalledWith('/w/a.ts', 'line one\nCHANGED\n'))
-    // A saved tab turns clean: the dirty dot and the save button disappear.
-    await waitFor(() => expect(screen.queryByRole('button', { name: '保存' })).toBeNull())
     expect(screen.queryByTitle('有未保存的更改')).toBeNull()
+    expect(screen.queryByRole('button', { name: '保存' })).toBeNull()
   })
 
-  it('saves with Ctrl+S and keeps per-tab drafts when switching tabs', async () => {
-    const m = mount()
-    const first = await open(m, '/w/a.ts', 'a.ts')
-    first.dispatch({ changes: { from: 0, to: first.state.doc.length, insert: 'edited A' } })
-
+  it('keeps each tab cached when switching (no disk re-read)', async () => {
+    const fsRead = vi.fn(async (path: string) => ({
+      path,
+      content: path.endsWith('a.ts') ? 'content A' : 'content B',
+      truncated: false,
+    }))
+    const m = mount({ fsRead })
+    await open(m, '/w/a.ts', 'a.ts')
     m.store.actions.openFile({ path: '/w/b.ts', name: 'b.ts' })
-    await waitFor(() => expect(cmView(m.view.container).state.doc.toString()).toBe('line one\nline two\n'))
-    const second = cmView(m.view.container)
-    second.dispatch({ changes: { from: 0, to: second.state.doc.length, insert: 'edited B' } })
-
-    // Back to the first tab: its unsaved draft is still there.
+    await waitFor(() => expect(cmView(m.view.container).state.doc.toString()).toBe('content B'))
+    // Back to the first tab: its cached content renders without a disk read.
     m.store.actions.activateFile('/w/a.ts')
-    await waitFor(() => expect(cmView(m.view.container).state.doc.toString()).toBe('edited A'))
-
-    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
-    await waitFor(() => expect(m.fsWrite).toHaveBeenCalledWith('/w/a.ts', 'edited A'))
+    await waitFor(() => expect(cmView(m.view.container).state.doc.toString()).toBe('content A'))
+    // Each file is read exactly once; switching back uses the cache.
+    expect(fsRead).toHaveBeenCalledTimes(2)
   })
 
-  it('keeps a truncated read read-only without a save path', async () => {
+  it('shows a notice for truncated reads and keeps them read-only', async () => {
     const m = mount({
       fsRead: vi.fn(async (path: string) => ({ path, content: 'cut', truncated: true })),
     })
     await open(m, '/w/big.ts', 'big.ts')
     expect(cmView(m.view.container).state.facet(EditorState.readOnly)).toBe(true)
-    expect(screen.getByText('文件过大，已截断显示，无法编辑和保存')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '保存' })).toBeNull()
+    expect(screen.getByText('文件过大，已截断显示')).toBeTruthy()
+  })
+
+  it('auto-reloads when the file changes on disk', async () => {
+    const fsRead = vi.fn(async (path: string) => ({ path, content: 'v1\n', truncated: false }))
+    const m = mount({ fsRead })
+    const view = await open(m, '/w/a.ts', 'a.ts')
+    expect(view.state.doc.toString()).toBe('v1\n')
+    // The 1s poll adopts the external edit directly (no dirty/conflict state).
+    fsRead.mockResolvedValueOnce({ path: '/w/a.ts', content: 'v2\n', truncated: false })
+    await waitFor(() => {
+      expect(cmView(m.view.container).state.doc.toString()).toBe('v2\n')
+    }, { timeout: 3000 })
   })
 
   it('“添加到对话” references the selected lines as a chip, not as draft text', async () => {
@@ -150,7 +149,7 @@ describe('FileViewer', () => {
       tabs: [{ path: '/w/a.ts', name: 'a.ts' }, { path: '/w/b.ts', name: 'b.ts' }],
       activePath: '/w/a.ts',
       files: {
-        '/w/a.ts': { saved: 'line one\nline two\n', draft: 'line one\nline two\n', truncated: false },
+        '/w/a.ts': { text: 'line one\nline two\n', truncated: false },
       },
     }))
     const m = mount()

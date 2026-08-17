@@ -14,7 +14,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls ui-layout's SlotMap merge ('file-viewer') into every program
 // that sees this contract, so PropsRuntime<'file-viewer'> resolves.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { FsFile, FsListing, FsWriteResult, GitScan, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
+import type { FsFile, FsListing, GitScan, GitStatus } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ExplorerKey } from '../locales.ts'
 import type { createExplorerStore } from '../store.ts'
 
@@ -24,8 +24,6 @@ export interface ExplorerInjected {
   fsList(path: string, signal?: AbortSignal): Promise<FsListing>
   /** Read one file's text content (the center viewer's source). */
   fsRead(path: string, signal?: AbortSignal): Promise<FsFile>
-  /** Write one file's text content (the center viewer's save path). */
-  fsWrite(path: string, content: string, signal?: AbortSignal): Promise<FsWriteResult>
   /** One-shot git status snapshot for a directory. */
   gitStatus(cwd: string, signal?: AbortSignal): Promise<GitStatus>
   /** Walk a directory tree and report every git repository under it (flat), each with its uncommitted files. */
